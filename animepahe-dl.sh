@@ -67,17 +67,16 @@ get_token_and_cookie() {
     # $1: download link
     local l j e t c
     l=$(echo "$1" | sed -E 's/.cx\/e/.cx\/f/')
-    j="$_SCRIPT_PATH/$_ANIME_SLUG/.$(echo "$l" | awk -F '/' '{print $NF}').js"
 
     h=$($_CURL -sS -c - "$l" --header 'referer: http://gatustox.net/')
-    grep 'eval' <<< "$h" > "$j"
+    j=$(grep 'eval' <<< "$h")
 
-    e=$($_NODE "$j" 2>&1 \
+    e=$($_NODE -e "$j" 2>&1 \
         | grep split \
         | sed -E 's/\.split.*//;s/.*_token//' \
         | awk '{print $NF}')
 
-    t=$($_NODE "$j" 2>&1 \
+    t=$($_NODE -e "$j" 2>&1 \
         | grep split \
         | sed -E "s/.*var $e=\"//" \
         | awk -F'"' '{print $1}' \
