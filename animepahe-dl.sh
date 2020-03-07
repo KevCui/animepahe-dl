@@ -103,7 +103,7 @@ download_source() {
 get_episode_link() {
     # $1: episode number
     local i
-    i=$($_JQ -r '.data[] | select(.episode== $num) | .id' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_SLUG/$_SOURCE_FILE")
+    i=$($_JQ -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .id' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_SLUG/$_SOURCE_FILE")
     if [[ "$i" == "" ]]; then
         echo "[ERROR] Episode not found!" >&2 && exit 1
     else
@@ -157,7 +157,7 @@ download_episode() {
 }
 
 select_episodes_to_download() {
-    $_JQ -r '.data[] | "[\(.episode)] E\(.episode) \(.created_at)"' < "$_SCRIPT_PATH/$_ANIME_SLUG/$_SOURCE_FILE" >&2
+    $_JQ -r '.data[] | "[\(.episode | tonumber)] E\(.episode | tonumber) \(.created_at)"' < "$_SCRIPT_PATH/$_ANIME_SLUG/$_SOURCE_FILE" >&2
     echo -n "Which episode(s) to downolad: " >&2
     read -r s
     echo "$s"
