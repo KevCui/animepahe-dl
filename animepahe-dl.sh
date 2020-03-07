@@ -31,7 +31,7 @@ set_var() {
 
     _SCRIPT_PATH=$(dirname "$0")
     _ANIME_LIST_FILE="$_SCRIPT_PATH/anime.list"
-    _SOURCE_FILE="source.json"
+    _SOURCE_FILE=".source.json"
 }
 
 set_args() {
@@ -67,11 +67,10 @@ get_token_and_cookie() {
     # $1: download link
     local l j e t c
     l=$(echo "$1" | sed -E 's/.cx\/e/.cx\/f/')
-    j="$_SCRIPT_PATH/$_ANIME_SLUG/$(echo "$l" | awk -F '/' '{print $NF}').js"
-    h="$_SCRIPT_PATH/$_ANIME_SLUG/$(echo "$l" | awk -F '/' '{print $NF}').html"
+    j="$_SCRIPT_PATH/$_ANIME_SLUG/.$(echo "$l" | awk -F '/' '{print $NF}').js"
 
-    $_CURL -sS -c - "$l" --header 'referer: http://gatustox.net/' > "$h"
-    grep 'eval' "$h" > "$j"
+    h=$($_CURL -sS -c - "$l" --header 'referer: http://gatustox.net/')
+    grep 'eval' <<< "$h" > "$j"
 
     e=$($_NODE "$j" 2>&1 \
         | grep split \
@@ -84,7 +83,7 @@ get_token_and_cookie() {
         | awk -F'"' '{print $1}' \
         | rev)
 
-    c=$(grep '_session' "$h" | awk '{print $NF}')
+    c=$(grep '_session' <<< "$h" | awk '{print $NF}')
 
     echo "$t $c"
 }
