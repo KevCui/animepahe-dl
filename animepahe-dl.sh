@@ -65,22 +65,15 @@ download_anime_list() {
 
 get_token_and_cookie() {
     # $1: download link
-    local l j e t c
+    local l j t c
     l=$(echo "$1" | sed -E 's/.cx\/e/.cx\/f/')
 
     h=$($_CURL -sS -c - "$l" --header 'referer: http://gatustox.net/')
-    j=$(grep 'eval' <<< "$h")
-
-    e=$($_NODE -e "$j" 2>&1 \
-        | grep split \
-        | sed -E 's/\.split.*//;s/.*_token//' \
-        | awk '{print $NF}')
+    j=$(grep 'eval' <<< "$h" | sed -E 's/^[[:space:]]+eval/console.log/')
 
     t=$($_NODE -e "$j" 2>&1 \
-        | grep split \
-        | sed -E "s/.*var $e=\"//" \
-        | awk -F'"' '{print $1}' \
-        | rev)
+        | sed -E "s/.*value=\"//" \
+        | awk -F'"' '{print $1}')
 
     c=$(grep '_session' <<< "$h" | awk '{print $NF}')
 
