@@ -24,6 +24,7 @@ set_var() {
     _PUP=$(command -v pup)
     _FZF=$(command -v fzf)
     _NODE=$(command -v node)
+    _CHROME=$(command -v chromium)
 
     _HOST="https://animepahe.com"
     _ANIME_URL="$_HOST/anime"
@@ -31,6 +32,7 @@ set_var() {
 
     _SCRIPT_PATH=$(dirname "$0")
     _ANIME_LIST_FILE="$_SCRIPT_PATH/anime.list"
+    _BYPASS_CF_SCRIPT="$_SCRIPT_PATH/bin/bypasscf.js"
     _SOURCE_FILE=".source.json"
 }
 
@@ -57,18 +59,27 @@ set_args() {
 
 download_anime_list() {
     $_CURL -sS "$_ANIME_URL" \
-        | $_PUP 'h2 a' \
-        | grep href \
+        | $_PUP 'div a' \
+        | grep "/anime/" \
         | sed -E 's/.*anime\//[/;s/" title="/] /;s/\">//' \
         > "$_ANIME_LIST_FILE"
 }
 
 get_token_and_cookie() {
     # $1: download link
-    local l j t c
+    local l v cf j t c
     l=$(echo "$1" | sed -E 's/.cx\/e/.cx\/f/')
+    v=$($_CHROME --version | awk '{print $2}')
+    cf=$(get_cf_clearance "$l")
 
-    h=$($_CURL -sS -c - "$l" --header 'referer: http://gatustox.net/')
+    if [[ -z "$cf" ]]; then
+        echo "[ERROR] Cannot fetch cf_clearance from $l!" >&2 && exit 1
+    fi
+
+    h=$($_CURL -sS -c - "$l" \
+        --header "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$v Safari/537.36" \
+        --header "cookie: cf_clearance=$cf")
+
     j=$(grep 'eval' <<< "$h" | sed -E 's/^[[:space:]]+eval/console.log/')
 
     t=$($_NODE -e "$j" 2>&1 \
@@ -95,12 +106,13 @@ download_source() {
 
 get_episode_link() {
     # $1: episode number
-    local i
-    i=$($_JQ -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .id' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_SLUG/$_SOURCE_FILE")
+    local i s
+    i=$($_JQ -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .anime_id' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_SLUG/$_SOURCE_FILE")
+    s=$($_JQ -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .session' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_SLUG/$_SOURCE_FILE")
     if [[ "$i" == "" ]]; then
         echo "[ERROR] Episode not found!" >&2 && exit 1
     else
-        $_CURL -sS "${_API_URL}?m=embed&id=$i&p=kwik" \
+        $_CURL -sS "${_API_URL}?m=embed&id=${i}&session=${s}&p=kwik" \
             | $_JQ -r '.data[][].url' \
             | tail -1
     fi
@@ -132,11 +144,17 @@ download_episodes() {
     fi
 }
 
+get_cf_clearance() {
+    # $1: url
+    $_NODE $_BYPASS_CF_SCRIPT "$_CHROME" 0 "$1" \
+        | $_JQ -r '.[] | select(.name == "cf_clearance") | .value'
+}
+
 download_episode() {
     # $1: episode number
     local l s t c
-    l=$(get_episode_link "$1")
 
+    l=$(get_episode_link "$1")
     if [[ "$l" != *"/"* ]]; then
         echo "[ERROR] Wrong download link or episode not found!" >&2 && exit 1
     fi

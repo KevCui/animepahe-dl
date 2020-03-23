@@ -2,3 +2,5 @@ anime.list
 */source.json
 */.source.json
 */*.mp4
+node_modules
+package-lock.json

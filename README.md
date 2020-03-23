@@ -9,6 +9,15 @@ animepahhe-dl.sh is a Bash script to download anime from [animepahe](https://ani
 - [pup](https://github.com/EricChiang/pup)
 - [fzf](https://github.com/junegunn/fzf)
 - [Node.js](https://nodejs.org/en/download/)
+- [puppeteer-core](https://www.npmjs.com/package/puppeteer-core)
+
+## Installation
+
+- Install puppeteer-core npm package. Go to `bin`, run command:
+
+```
+npm i puppeteer-core
+```
 
 ## How to use
 
@@ -64,6 +73,14 @@ Check out [twistmoe-dl](https://github.com/KevCui/twistmoe-dl)
 ### What to know when the new episode of your favorite anime will be released?
 
 Check out this script [tvdb-cli](https://github.com/KevCui/tvdb-cli)
+
+## Limitation
+
+Recently, animepahe implemented Cloudflare DDoS prevention mechanism. In order to bypass it, current method is to fetch necessary cookie value in browser opened by puppeteer. Using this method, there are some limitations:
+
+- Browser will open and load web page. Headless mode is currently not working to bypass Cloudflare.
+
+- Browser will stay for at least 5 second open to get cookie from Cloudflare site.
 
 ## Disclaimer
 
