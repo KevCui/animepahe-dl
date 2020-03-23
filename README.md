@@ -76,11 +76,7 @@ Check out this script [tvdb-cli](https://github.com/KevCui/tvdb-cli)
 
 ## Limitation
 
-Recently, animepahe implemented Cloudflare DDoS prevention mechanism. In order to bypass it, current method is to fetch necessary cookie value in browser opened by puppeteer. Using this method, there are some limitations:
-
-- Browser will open and load web page. Headless mode is currently not working to bypass Cloudflare.
-
-- Browser will stay for at least 5 second open to get cookie from Cloudflare site.
+Recently, animepahe implemented Cloudflare DDoS prevention mechanism. In order to bypass it, current method is to fetch necessary cookie value in browser opened by puppeteer. Using this method, there is at least 5s wait time because browser has to wait for at least 5s to get cookie from Cloudflare site.
 
 ## Disclaimer
 

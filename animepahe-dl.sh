@@ -33,6 +33,8 @@ set_var() {
     _SCRIPT_PATH=$(dirname "$0")
     _ANIME_LIST_FILE="$_SCRIPT_PATH/anime.list"
     _BYPASS_CF_SCRIPT="$_SCRIPT_PATH/bin/bypasscf.js"
+    _USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$($_CHROME --version | awk '{print $2}') Safari/537.36"
+
     _SOURCE_FILE=".source.json"
 }
 
@@ -67,9 +69,8 @@ download_anime_list() {
 
 get_token_and_cookie() {
     # $1: download link
-    local l v cf j t c
+    local l cf j t c
     l=$(echo "$1" | sed -E 's/.cx\/e/.cx\/f/')
-    v=$($_CHROME --version | awk '{print $2}')
     cf=$(get_cf_clearance "$l")
 
     if [[ -z "$cf" ]]; then
@@ -77,7 +78,7 @@ get_token_and_cookie() {
     fi
 
     h=$($_CURL -sS -c - "$l" \
-        --header "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$v Safari/537.36" \
+        --header "User-Agent: $_USER_AGENT"  \
         --header "cookie: cf_clearance=$cf")
 
     j=$(grep 'eval' <<< "$h" | sed -E 's/^[[:space:]]+eval/console.log/')
@@ -146,7 +147,8 @@ download_episodes() {
 
 get_cf_clearance() {
     # $1: url
-    $_NODE $_BYPASS_CF_SCRIPT "$_CHROME" 0 "$1" \
+    echo "[INFO] Wait for 5s to visit $1..." >&2
+    $_NODE "$_BYPASS_CF_SCRIPT" "$_CHROME" 1 "$1" "$_USER_AGENT" \
         | $_JQ -r '.[] | select(.name == "cf_clearance") | .value'
 }
 
@@ -163,7 +165,7 @@ download_episode() {
     t=$(echo "$s" | awk '{print $1}')
     c=$(echo "$s" | awk '{print $NF}')
 
-    echo "[INFO] Downloading Episode $1..."
+    echo "[INFO] Downloading Episode $1..." >&2
     $_CURL -L -g -o "$_SCRIPT_PATH/$_ANIME_SLUG/${_ANIME_SLUG}-${1}.mp4" "$(get_media_link "$l" "$t" "$c")"
 }
 
