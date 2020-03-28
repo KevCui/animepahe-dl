@@ -155,7 +155,7 @@ download_episodes() {
 
 get_cf_clearance() {
     # $1: url
-    echo "[INFO] Wait for 5s to visit $1..." >&2
+    echo "[INFO] Wait for solving reCAPTCHA to visit $1..." >&2
     $_NODE "$_BYPASS_CF_SCRIPT" "$_CHROME" 0 "$1" "$_USER_AGENT" \
         | $_JQ -r '.[] | select(.name == "cf_clearance") | .value'
 }

@@ -76,7 +76,7 @@ Check out this script [tvdb-cli](https://github.com/KevCui/tvdb-cli)
 
 ## Limitation
 
-Recently, animepahe implemented Cloudflare DDoS prevention mechanism. In order to bypass it, current method is to fetch necessary cookie value in browser opened by puppeteer. Using this method, there is at least 5s wait time because browser has to wait for at least 5s to get cookie from Cloudflare site.
+Recently, animepahe implemented Cloudflare DDoS prevention mechanism with reCAPTCHA challenge. Current method is to fetch necessary cookie value from browser opened by puppeteer. Using this method, user must solve reCAPTCHA correctly once per day. The reCAPTCHA page will be prompted in browser.
 
 ## Disclaimer
 
