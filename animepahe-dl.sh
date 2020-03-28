@@ -34,6 +34,7 @@ set_var() {
     _ANIME_LIST_FILE="$_SCRIPT_PATH/anime.list"
     _BYPASS_CF_SCRIPT="$_SCRIPT_PATH/bin/bypasscf.js"
     _USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$($_CHROME --version | awk '{print $2}') Safari/537.36"
+    _CF_FILE="$_SCRIPT_PATH/cf_clearance"
 
     _SOURCE_FILE=".source.json"
 }
@@ -70,8 +71,14 @@ download_anime_list() {
 get_token_and_cookie() {
     # $1: download link
     local l cf j t c
+
     l=$(echo "$1" | sed -E 's/.cx\/e/.cx\/f/')
-    cf=$(get_cf_clearance "$l")
+
+    if [[ "$(is_cf_expired)" == "yes" ]]; then
+        cf=$(get_cf_clearance "$l" | tee "$_CF_FILE")
+    else
+        cf=$(cat "$_CF_FILE")
+    fi
 
     if [[ -z "$cf" ]]; then
         echo "[ERROR] Cannot fetch cf_clearance from $l!" >&2 && exit 1
@@ -81,9 +88,10 @@ get_token_and_cookie() {
         --header "User-Agent: $_USER_AGENT"  \
         --header "cookie: cf_clearance=$cf")
 
-    j=$(grep 'eval' <<< "$h" | sed -E 's/^[[:space:]]+eval/console.log/')
+    j=$(grep 'eval' <<< "$h" | sed -E 's/eval/console.log/')
 
     t=$($_NODE -e "$j" 2>&1 \
+        | grep '_token' \
         | sed -E "s/.*value=\"//" \
         | awk -F'"' '{print $1}')
 
@@ -148,8 +156,25 @@ download_episodes() {
 get_cf_clearance() {
     # $1: url
     echo "[INFO] Wait for 5s to visit $1..." >&2
-    $_NODE "$_BYPASS_CF_SCRIPT" "$_CHROME" 1 "$1" "$_USER_AGENT" \
+    $_NODE "$_BYPASS_CF_SCRIPT" "$_CHROME" 0 "$1" "$_USER_AGENT" \
         | $_JQ -r '.[] | select(.name == "cf_clearance") | .value'
+}
+
+is_cf_expired() {
+    local o
+    o="yes"
+
+    if [[ -f "$_CF_FILE" ]]; then
+        local d n
+        d=$(date -d "$(date -r "$_CF_FILE") +1 days" +%s)
+        n=$(date +%s)
+
+        if [[ "$n" -lt "$d" ]]; then
+            o="no"
+        fi
+    fi
+
+    echo "$o"
 }
 
 download_episode() {

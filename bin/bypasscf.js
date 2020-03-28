@@ -18,7 +18,7 @@ const puppeteer = require('puppeteer-core');
     await page.setUserAgent(userAgent);
     await page.goto(url, {timeout: 30000, waitUntil: 'domcontentloaded'});
 
-    await page.waitFor('.navbar-brand');
+    await page.waitFor('.navbar-brand', {timeout: 60000});
     const cookie = await page.cookies();
     console.log(JSON.stringify(cookie));
 
