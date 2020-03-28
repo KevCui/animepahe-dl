@@ -35,7 +35,6 @@ set_var() {
     _BYPASS_CF_SCRIPT="$_SCRIPT_PATH/bin/bypasscf.js"
     _USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$($_CHROME --version | awk '{print $2}') Safari/537.36"
     _CF_FILE="$_SCRIPT_PATH/cf_clearance"
-
     _SOURCE_FILE=".source.json"
 }
 
@@ -109,15 +108,15 @@ get_anime_id() {
 }
 
 download_source() {
-    mkdir -p "$_SCRIPT_PATH/$_ANIME_SLUG"
-    $_CURL -sS "${_API_URL}?m=release&id=$(get_anime_id "$_ANIME_SLUG")&sort=episode_asc" > "$_SCRIPT_PATH/$_ANIME_SLUG/$_SOURCE_FILE"
+    mkdir -p "$_SCRIPT_PATH/$_ANIME_NAME"
+    $_CURL -sS "${_API_URL}?m=release&id=$(get_anime_id "$_ANIME_SLUG")&sort=episode_asc" > "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE"
 }
 
 get_episode_link() {
     # $1: episode number
     local i s
-    i=$($_JQ -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .anime_id' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_SLUG/$_SOURCE_FILE")
-    s=$($_JQ -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .session' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_SLUG/$_SOURCE_FILE")
+    i=$($_JQ -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .anime_id' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
+    s=$($_JQ -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .session' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     if [[ "$i" == "" ]]; then
         echo "[ERROR] Episode not found!" >&2 && exit 1
     else
@@ -191,11 +190,11 @@ download_episode() {
     c=$(echo "$s" | awk '{print $NF}')
 
     echo "[INFO] Downloading Episode $1..." >&2
-    $_CURL -L -g -o "$_SCRIPT_PATH/$_ANIME_SLUG/${_ANIME_SLUG}-${1}.mp4" "$(get_media_link "$l" "$t" "$c")"
+    $_CURL -L -g -o "$_SCRIPT_PATH/${_ANIME_NAME}/${1}.mp4" "$(get_media_link "$l" "$t" "$c")"
 }
 
 select_episodes_to_download() {
-    $_JQ -r '.data[] | "[\(.episode | tonumber)] E\(.episode | tonumber) \(.created_at)"' < "$_SCRIPT_PATH/$_ANIME_SLUG/$_SOURCE_FILE" >&2
+    $_JQ -r '.data[] | "[\(.episode | tonumber)] E\(.episode | tonumber) \(.created_at)"' < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" >&2
     echo -n "Which episode(s) to downolad: " >&2
     read -r s
     echo "$s"
@@ -207,21 +206,16 @@ main() {
 
     if [[ -z "${_ANIME_SLUG:-}" ]]; then
         download_anime_list
-        if [[ ! -f "$_ANIME_LIST_FILE" ]]; then
-            echo "[ERROR] $_ANIME_LIST_FILE not found!" && exit 1
-        fi
+        [[ ! -f "$_ANIME_LIST_FILE" ]] && (echo "[ERROR] $_ANIME_LIST_FILE not found!" && exit 1)
         _ANIME_SLUG=$($_FZF < "$_ANIME_LIST_FILE" | awk -F']' '{print $1}' | sed -E 's/^\[//')
-
-        if [[ "$_ANIME_SLUG" == "" ]]; then
-            exit 0
-        fi
     fi
+
+    [[ "$_ANIME_SLUG" == "" ]] && exit 0
+    _ANIME_NAME=$(grep "$_ANIME_SLUG" "$_ANIME_LIST_FILE" | awk -F '] ' '{print $2}' | sed -E 's/\//_/g')
 
     download_source
 
-    if [[ -z "${_ANIME_EPISODE:-}" ]]; then
-        _ANIME_EPISODE=$(select_episodes_to_download)
-    fi
+    [[ -z "${_ANIME_EPISODE:-}" ]] && _ANIME_EPISODE=$(select_episodes_to_download)
     download_episodes "$_ANIME_EPISODE"
 }
 
