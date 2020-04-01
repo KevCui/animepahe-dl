@@ -18,6 +18,7 @@ animepahhe-dl.sh is a Bash script to download anime from [animepahe](https://ani
 ```bash
 ~$ git clone https://github.com/KevCui/animepahe-dl.git
 ~$ cd animepahe-dl
+~$ git submodule init
 ~$ git submodule update
 ~$ cd bin
 ~$ npm i puppeteer-core commander
