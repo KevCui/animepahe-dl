@@ -32,7 +32,7 @@ set_var() {
 
     _SCRIPT_PATH=$(dirname "$0")
     _ANIME_LIST_FILE="$_SCRIPT_PATH/anime.list"
-    _BYPASS_CF_SCRIPT="$_SCRIPT_PATH/bin/bypasscf.js"
+    _BYPASS_CF_SCRIPT="$_SCRIPT_PATH/bin/getCFcookie.js"
     _USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$($_CHROME --version | awk '{print $2}') Safari/537.36"
     _CF_FILE="$_SCRIPT_PATH/cf_clearance"
     _SOURCE_FILE=".source.json"
@@ -155,7 +155,7 @@ download_episodes() {
 get_cf_clearance() {
     # $1: url
     echo "[INFO] Wait for solving reCAPTCHA to visit $1..." >&2
-    $_NODE "$_BYPASS_CF_SCRIPT" "$_CHROME" 0 "$1" "$_USER_AGENT" \
+    $_BYPASS_CF_SCRIPT -u "$1" -a "$_USER_AGENT" -p "$_CHROME" -s \
         | $_JQ -r '.[] | select(.name == "cf_clearance") | .value'
 }
 
@@ -163,7 +163,7 @@ is_cf_expired() {
     local o
     o="yes"
 
-    if [[ -f "$_CF_FILE" ]]; then
+    if [[ -f "$_CF_FILE" && -s "$_CF_FILE" ]]; then
         local d n
         d=$(date -d "$(date -r "$_CF_FILE") +1 days" +%s)
         n=$(date +%s)
@@ -210,8 +210,10 @@ main() {
         _ANIME_SLUG=$($_FZF < "$_ANIME_LIST_FILE" | awk -F']' '{print $1}' | sed -E 's/^\[//')
     fi
 
-    [[ "$_ANIME_SLUG" == "" ]] && exit 0
+    [[ "$_ANIME_SLUG" == "" ]] && (echo "[ERROR] Anime slug not found!"; exit 1)
     _ANIME_NAME=$(grep "$_ANIME_SLUG" "$_ANIME_LIST_FILE" | awk -F '] ' '{print $2}' | sed -E 's/\//_/g')
+
+    [[ "$_ANIME_NAME" == "" ]] && (echo "[ERROR] Anime name not found! Try again."; download_anime_list; exit 1)
 
     download_source
 

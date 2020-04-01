@@ -9,14 +9,16 @@ animepahhe-dl.sh is a Bash script to download anime from [animepahe](https://ani
 - [pup](https://github.com/EricChiang/pup)
 - [fzf](https://github.com/junegunn/fzf)
 - [Node.js](https://nodejs.org/en/download/)
-- [puppeteer-core](https://www.npmjs.com/package/puppeteer-core)
+- [cf-cookie](https://github.com/KevCui/cf-cookie)
 
 ## Installation
 
-- Install puppeteer-core npm package. Go to `bin`, run command:
+- Update submodule and install npm packages, run command:
 
-```
-npm i puppeteer-core
+```bash
+~$ git submodule update
+~$ cd bin
+~$ npm i puppeteer-core commander
 ```
 
 ## How to use
