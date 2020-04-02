@@ -130,13 +130,21 @@ get_media_link() {
     # $1: episode link
     # $2: token
     # $3: cookie
-    local l
+    local l o
     l=$(echo "$1" | sed -E 's/.cx\/e/.cx\/d/')
-    $_CURL -sS "$l" \
+    o=$($_CURL -sS "$l" \
         -H "Referer: $l" \
         -H "Cookie: kwik_session=$3" \
         --data "_token=$2" \
-        | $_PUP 'a attr{href}'
+        | $_PUP 'a attr{href}')
+
+    if [[ -z "$o" ]]; then
+        echo "[ERROR] Cannot fetch media download link! Try again." >&2
+        rm -rf "$_CF_FILE"
+        exit 1
+    fi
+
+    echo "$o"
 }
 
 download_episodes() {
@@ -178,7 +186,7 @@ is_cf_expired() {
 
 download_episode() {
     # $1: episode number
-    local l s t c
+    local l s t c m
 
     l=$(get_episode_link "$1")
     if [[ "$l" != *"/"* ]]; then
@@ -188,9 +196,10 @@ download_episode() {
     s=$(get_token_and_cookie "$l")
     t=$(echo "$s" | awk '{print $1}')
     c=$(echo "$s" | awk '{print $NF}')
+    m=$(get_media_link "$l" "$t" "$c")
 
     echo "[INFO] Downloading Episode $1..." >&2
-    $_CURL -L -g -o "$_SCRIPT_PATH/${_ANIME_NAME}/${1}.mp4" "$(get_media_link "$l" "$t" "$c")"
+    $_CURL -L -g -o "$_SCRIPT_PATH/${_ANIME_NAME}/${1}.mp4" "$m"
 }
 
 select_episodes_to_download() {
