@@ -71,7 +71,7 @@ get_token_and_cookie() {
     # $1: download link
     local l cf j t c
 
-    l=$(echo "$1" | sed -E 's/.cx\/e/.cx\/f/')
+    l=$(sed -E 's/.cx\/e/.cx\/f/' <<< "$1")
 
     if [[ "$(is_cf_expired)" == "yes" ]]; then
         cf=$(get_cf_clearance "$l" | tee "$_CF_FILE")
@@ -87,12 +87,12 @@ get_token_and_cookie() {
         --header "User-Agent: $_USER_AGENT"  \
         --header "cookie: cf_clearance=$cf")
 
-    j=$(grep 'eval' <<< "$h" | sed -E 's/eval/console.log/')
+    j=$(grep 'decodeURIComponent' <<< "$h" | grep 'escape' | sed -E 's/return decodeURIComponent/console.log/')
 
     t=$($_NODE -e "$j" 2>&1 \
         | grep '_token' \
-        | sed -E "s/.*value=\"//" \
-        | awk -F'"' '{print $1}')
+        | sed -E 's/.*value%3D%22//' \
+        | awk -F '%22' '{print $1}')
 
     c=$(grep '_session' <<< "$h" | awk '{print $NF}')
 
@@ -130,10 +130,11 @@ get_media_link() {
     # $1: episode link
     # $2: token
     # $3: cookie
-    local l o
-    l=$(echo "$1" | sed -E 's/.cx\/e/.cx\/d/')
+    local l rl o
+    l=$(sed -E 's/.cx\/e/.cx\/d/' <<< "$1")
+    rl=$(sed -E 's/.cx\/e/.cx\/f/' <<< "$1")
     o=$($_CURL -sS "$l" \
-        -H "Referer: $l" \
+        -H "Referer: $rl" \
         -H "Cookie: kwik_session=$3" \
         --data "_token=$2" \
         | $_PUP 'a attr{href}')
