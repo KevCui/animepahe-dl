@@ -52,11 +52,26 @@ set_args() {
                 usage
                 ;;
             \?)
-                echo "[ERROR] Invalid option: -$OPTARG" >&2
-                usage
+                print_error "Invalid option: -$OPTARG"
                 ;;
         esac
     done
+}
+
+print_info() {
+    # $1: info message
+    printf "%b\n" "\033[32m[INFO]\033[0m $1" >&2
+}
+
+print_warn() {
+    # $1: warning message
+    printf "%b\n" "\033[33m[WARNING]\033[0m $1" >&2
+}
+
+print_error() {
+    # $1: error message
+    printf "%b\n" "\033[31m[ERROR]\033[0m $1" >&2
+    exit 1
 }
 
 download_anime_list() {
@@ -79,9 +94,7 @@ get_token_and_cookie() {
         cf=$(cat "$_CF_FILE")
     fi
 
-    if [[ -z "$cf" ]]; then
-        echo "[ERROR] Cannot fetch cf_clearance from $l!" >&2 && exit 1
-    fi
+    [[ -z "$cf" ]] && print_error "Cannot fetch cf_clearance from $l!"
 
     h=$($_CURL -sS -c - "$l" \
         --header "User-Agent: $_USER_AGENT"  \
@@ -117,13 +130,10 @@ get_episode_link() {
     local i s
     i=$($_JQ -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .anime_id' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     s=$($_JQ -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .session' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
-    if [[ "$i" == "" ]]; then
-        echo "[ERROR] Episode not found!" >&2 && exit 1
-    else
-        $_CURL -sS "${_API_URL}?m=embed&id=${i}&session=${s}&p=kwik" \
-            | $_JQ -r '.data[][].url' \
-            | tail -1
-    fi
+    [[ "$i" == "" ]] && print_error "Episode not found!"
+    $_CURL -sS "${_API_URL}?m=embed&id=${i}&session=${s}&p=kwik" \
+        | $_JQ -r '.data[][].url' \
+        | tail -1
 }
 
 get_media_link() {
@@ -140,9 +150,8 @@ get_media_link() {
         | $_PUP 'a attr{href}')
 
     if [[ -z "$o" ]]; then
-        echo "[ERROR] Cannot fetch media download link! Try again." >&2
         rm -rf "$_CF_FILE"
-        exit 1
+        print_error "Cannot fetch media download link! Try again."
     fi
 
     echo "$o"
@@ -163,7 +172,7 @@ download_episodes() {
 
 get_cf_clearance() {
     # $1: url
-    echo "[INFO] Wait for solving reCAPTCHA to visit $1..." >&2
+    print_info "Wait for solving reCAPTCHA to visit $1..."
     $_BYPASS_CF_SCRIPT -u "$1" -a "$_USER_AGENT" -p "$_CHROME" -s \
         | $_JQ -r '.[] | select(.name == "cf_clearance") | .value'
 }
@@ -190,16 +199,14 @@ download_episode() {
     local l s t c m
 
     l=$(get_episode_link "$1")
-    if [[ "$l" != *"/"* ]]; then
-        echo "[ERROR] Wrong download link or episode not found!" >&2 && exit 1
-    fi
+    [[ "$l" != *"/"* ]] && print_error "Wrong download link or episode not found!"
 
     s=$(get_token_and_cookie "$l")
     t=$(echo "$s" | awk '{print $1}')
     c=$(echo "$s" | awk '{print $NF}')
     m=$(get_media_link "$l" "$t" "$c")
 
-    echo "[INFO] Downloading Episode $1..." >&2
+    print_info "Downloading Episode $1..."
     $_CURL -L -g -o "$_SCRIPT_PATH/${_ANIME_NAME}/${1}.mp4" "$m"
 }
 
@@ -216,14 +223,14 @@ main() {
 
     if [[ -z "${_ANIME_SLUG:-}" ]]; then
         download_anime_list
-        [[ ! -f "$_ANIME_LIST_FILE" ]] && (echo "[ERROR] $_ANIME_LIST_FILE not found!" && exit 1)
+        [[ ! -f "$_ANIME_LIST_FILE" ]] && print_error "$_ANIME_LIST_FILE not found!"
         _ANIME_SLUG=$($_FZF < "$_ANIME_LIST_FILE" | awk -F']' '{print $1}' | sed -E 's/^\[//')
     fi
 
-    [[ "$_ANIME_SLUG" == "" ]] && (echo "[ERROR] Anime slug not found!"; exit 1)
+    [[ "$_ANIME_SLUG" == "" ]] && print_error "Anime slug not found!"
     _ANIME_NAME=$(grep "$_ANIME_SLUG" "$_ANIME_LIST_FILE" | awk -F '] ' '{print $2}' | sed -E 's/\//_/g')
 
-    [[ "$_ANIME_NAME" == "" ]] && (echo "[ERROR] Anime name not found! Try again."; download_anime_list; exit 1)
+    [[ "$_ANIME_NAME" == "" ]] && (print_warn "Anime name not found! Try again."; download_anime_list; exit 1)
 
     download_source
 
