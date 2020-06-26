@@ -100,11 +100,11 @@ get_token_and_cookie() {
         --header "User-Agent: $_USER_AGENT"  \
         --header "cookie: cf_clearance=$cf")
 
-    j=$(grep 'decodeURIComponent' <<< "$h" | grep 'escape' | sed -E 's/return decodeURIComponent/console.log/')
+    j=$(grep 'decodeURIComponent' <<< "$h" | grep 'escape' | sed -E 's/return decodeURIComponent/return console.log/')
 
     t=$($_NODE -e "$j" 2>&1 \
         | grep '_token' \
-        | sed -E 's/.*value%3D%22//' \
+        | sed -E 's/.*_token%22%20value%3D%22//' \
         | awk -F '%22' '{print $1}')
 
     c=$(grep '_session' <<< "$h" | awk '{print $NF}')
@@ -132,29 +132,8 @@ get_episode_link() {
     s=$($_JQ -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .session' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     [[ "$i" == "" ]] && print_error "Episode not found!"
     $_CURL -sS "${_API_URL}?m=embed&id=${i}&session=${s}&p=kwik" \
-        | $_JQ -r '.data[][].url' \
+        | $_JQ -r '.data[][].kwik' \
         | tail -1
-}
-
-get_media_link() {
-    # $1: episode link
-    # $2: token
-    # $3: cookie
-    local l rl o
-    l=$(sed -E 's/.cx\/e/.cx\/d/' <<< "$1")
-    rl=$(sed -E 's/.cx\/e/.cx\/f/' <<< "$1")
-    o=$($_CURL -sS "$l" \
-        -H "Referer: $rl" \
-        -H "Cookie: kwik_session=$3" \
-        --data "_token=$2" \
-        | $_PUP 'a attr{href}')
-
-    if [[ -z "$o" ]]; then
-        rm -rf "$_CF_FILE"
-        print_error "Cannot fetch media download link! Try again."
-    fi
-
-    echo "$o"
 }
 
 download_episodes() {
@@ -196,7 +175,7 @@ is_cf_expired() {
 
 download_episode() {
     # $1: episode number
-    local l s t c m
+    local l s t c ol rl
 
     l=$(get_episode_link "$1")
     [[ "$l" != *"/"* ]] && print_error "Wrong download link or episode not found!"
@@ -204,10 +183,14 @@ download_episode() {
     s=$(get_token_and_cookie "$l")
     t=$(echo "$s" | awk '{print $1}')
     c=$(echo "$s" | awk '{print $NF}')
-    m=$(get_media_link "$l" "$t" "$c")
 
     print_info "Downloading Episode $1..."
-    $_CURL -L -g -o "$_SCRIPT_PATH/${_ANIME_NAME}/${1}.mp4" "$m"
+    ol=$(sed -E 's/.cx\/e/.cx\/d/' <<< "$l")
+    rl=$(sed -E 's/.cx\/e/.cx\/f/' <<< "$l")
+    $_CURL -L "$ol" \
+        -H "Referer: $rl" \
+        -H "Cookie: kwik_session=$c" \
+        --data "_token=$t" -g -o "$_SCRIPT_PATH/${_ANIME_NAME}/${1}.mp4"
 }
 
 select_episodes_to_download() {
@@ -223,7 +206,7 @@ main() {
 
     if [[ -z "${_ANIME_SLUG:-}" ]]; then
         download_anime_list
-        [[ ! -f "$_ANIME_LIST_FILE" ]] && print_error "$_ANIME_LIST_FILE not found!"
+        [[ ! -s "$_ANIME_LIST_FILE" ]] && print_error "$_ANIME_LIST_FILE not found!"
         _ANIME_SLUG=$($_FZF < "$_ANIME_LIST_FILE" | awk -F']' '{print $1}' | sed -E 's/^\[//')
     fi
 
