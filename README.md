@@ -99,6 +99,12 @@ Options:
 ~$ mpv "$(./animepahe-dl.sh -s 82a257c6-d361-69e9-9c43-10b45032a660 -e 5 -l)"
 ```
 
+Or the interactive way:
+
+```
+~$ mpv "$(./animepahe-dl.sh -l | grep 'https://')"
+```
+
 ## Limitation
 
 Recently, animepahe implemented Cloudflare DDoS prevention mechanism with reCAPTCHA challenge. Current method is to fetch necessary cookie value from browser opened by puppeteer. Using this method, user must solve reCAPTCHA correctly once per day. The reCAPTCHA page will be prompted in browser.
