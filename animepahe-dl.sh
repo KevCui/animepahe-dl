@@ -31,7 +31,7 @@ set_var() {
     _ANIME_URL="$_HOST/anime"
     _API_URL="$_HOST/api"
 
-    _SCRIPT_PATH=$(dirname "$0")
+    _SCRIPT_PATH=$(dirname "$(realpath "$0")")
     _ANIME_LIST_FILE="$_SCRIPT_PATH/anime.list"
     _BYPASS_CF_SCRIPT="$_SCRIPT_PATH/bin/getCFcookie.js"
     _USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$($_CHROME --version | awk '{print $2}') Safari/537.36"
