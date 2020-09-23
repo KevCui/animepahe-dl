@@ -3,12 +3,13 @@
 # Download anime from animepahe using CLI
 #
 #/ Usage:
-#/   ./animepahe-dl.sh [-s <anime_slug>] [-e <episode_num1,num2...>]
+#/   ./animepahe-dl.sh [-s <anime_slug>] [-e <episode_num1,num2...>] [-l]
 #/
 #/ Options:
 #/   -s <slug>          Anime slug, can be found in $_ANIME_LIST_FILE
 #/   -e <num1,num2...>  Optional, episode number to download
 #/                      multiple episode numbers seperated by ","
+#/   -l                 Optional, list video link only without downloading
 #/   -h | --help        Display this help message
 
 set -e
@@ -40,13 +41,16 @@ set_var() {
 
 set_args() {
     expr "$*" : ".*--help" > /dev/null && usage
-    while getopts ":hs:e:" opt; do
+    while getopts ":hls:e:" opt; do
         case $opt in
             s)
                 _ANIME_SLUG="$OPTARG"
                 ;;
             e)
                 _ANIME_EPISODE="$OPTARG"
+                ;;
+            l)
+                _LIST_LINK_ONLY=true
                 ;;
             h)
                 usage
@@ -184,13 +188,23 @@ download_episode() {
     t=$(echo "$s" | awk '{print $1}')
     c=$(echo "$s" | awk '{print $NF}')
 
-    print_info "Downloading Episode $1..."
     ol=$(sed -E 's/.cx\/e/.cx\/d/' <<< "$l")
     rl=$(sed -E 's/.cx\/e/.cx\/f/' <<< "$l")
-    $_CURL -L "$ol" \
-        -H "Referer: $rl" \
-        -H "Cookie: kwik_session=$c" \
-        --data "_token=$t" -g -o "$_SCRIPT_PATH/${_ANIME_NAME}/${1}.mp4"
+    if [[ -z ${_LIST_LINK_ONLY:-} ]]; then
+        print_info "Downloading Episode $1..."
+        $_CURL -L "$ol" \
+            -H "Referer: $rl" \
+            -H "Cookie: kwik_session=$c" \
+            --data "_token=$t" -g -o "$_SCRIPT_PATH/${_ANIME_NAME}/${1}.mp4"
+    else
+        $_CURL -sSD - "$ol" \
+            -H "Referer: $rl" \
+            -H "Cookie: kwik_session=$c" \
+            --data "_token=$t" \
+        | grep "location:" \
+        | tr -d '\r' \
+        | awk -F ': ' '{print $2}'
+    fi
 }
 
 select_episodes_to_download() {

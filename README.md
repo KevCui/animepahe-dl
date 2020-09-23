@@ -1,7 +1,18 @@
-animepahhe-dl
-=============
+# animepahhe-dl
 
-animepahhe-dl.sh is a Bash script to download anime from [animepahe](https://animepahe.com/). It supports batch downloads.
+> Bash script to download anime from [animepahe](https://animepahe.com/)
+
+## Table of Contents
+
+- [Dependency](#dependency)
+- [Installation](#installation)
+- [How to use](#how-to-use)
+  - [Example](#example)
+- [Limitation](#limitation)
+- [Disclaimer](#disclaimer)
+- [You may like...](#you-may-like)
+  - [Don't like animepahe? Want an alternative?](#dont-like-animepahe-want-an-alternative)
+  - [What to know when the new episode of your favorite anime will be released?](#what-to-know-when-the-new-episode-of-your-favorite-anime-will-be-released)
 
 ## Dependency
 
@@ -28,48 +39,75 @@ animepahhe-dl.sh is a Bash script to download anime from [animepahe](https://ani
 
 ```
 Usage:
-  ./animepahe-dl.sh [-s <anime_slug>] [-e <episode_num1,num2...>]
+  ./animepahe-dl.sh [-s <anime_slug>] [-e <episode_num1,num2...>] [-l]
 
 Options:
   -s <slug>          Anime slug, can be found in $_ANIME_LIST_FILE
   -e <num1,num2...>  Optional, episode number to download
                      multiple episode numbers seperated by ","
+  -l                 Optional, list video link only without downloading
   -h | --help        Display this help message
 ```
 
 ### Example
 
-- In case, you don't know anime slug, simply run script. Search and select the right one in fzf:
+- In case, you don't know anime slug, simply run script. Search and select the right one in `fzf`:
 
 ```
 ~$ ./animepahe-dl.sh
 ```
 
-- Download "Attack on Titan" season 3 episode 50:
+- By default, anime slug is stored in `anime.list` file. Download "One Punch Man" season 2 episode 3:
 
 ```
-~$ ./animepahe-dl.sh -s attack-on-titan-season-3-part-2 -e 50
+~$ ./animepahe-dl.sh -s 82a257c6-d361-69e9-9c43-10b45032a660 -e 3
 ```
 
-- List "Attack on Titan" season 3 part 2 all episodes:
+- List "One Punch Man" season 2 all episodes:
 
 ```
-~$ ./animepahe-dl.sh -s attack-on-titan-season-3-part-2
-[50] E50 2019-04-28 19:10:30
-[51] E51 2019-05-05 17:56:33
-[52] E52 2019-05-12 17:51:06
-[53] E53 2019-05-19 18:51:24
-[54] E54 2019-05-27 03:03:35
-[55] E55 2019-06-03 03:31:57
-[56] E56 2019-06-10 01:59:17
+~$ ./animepahe-dl.sh -s 82a257c6-d361-69e9-9c43-10b45032a660
+[1] E1 2019-04-09 18:45:38
+[2] E2 2019-04-16 17:54:48
+[3] E3 2019-04-23 17:51:20
+[4] E4 2019-04-30 17:51:37
+[5] E5 2019-05-07 17:55:53
+[6] E6 2019-05-14 17:52:04
+[7] E7 2019-05-21 17:54:21
+[8] E8 2019-05-28 22:51:16
+[9] E9 2019-06-11 17:48:50
+[10] E10 2019-06-18 17:50:25
+[11] E11 2019-06-25 17:59:38
+[12] E12 2019-07-02 18:01:11
+```
+
+- Support batch downloads: list "One Punch Man" season 2 episode 5, 6, 7:
+
+```
+~$ ./animepahe-dl.sh -s 82a257c6-d361-69e9-9c43-10b45032a660 -e 5,6,7
+[INFO] Downloading Episode 5...
+...
+[INFO] Downloading Episode 6...
+...
+[INFO] Downloading Episode 7...
 ...
 ```
 
-- Support batch downloads: list "Attack on Titan" season 3 episode 50, 51, 52:
+- Display only video link, used to pipe into `mpv` or other media player:
 
 ```
-~$ ./animepahe-dl.sh -s attack-on-titan-season-3-part-2 -e 50,51,52
+~$ mpv "$(./animepahe-dl.sh -s 82a257c6-d361-69e9-9c43-10b45032a660 -e 5 -l)"
 ```
+
+## Limitation
+
+Recently, animepahe implemented Cloudflare DDoS prevention mechanism with reCAPTCHA challenge. Current method is to fetch necessary cookie value from browser opened by puppeteer. Using this method, user must solve reCAPTCHA correctly once per day. The reCAPTCHA page will be prompted in browser.
+
+## Disclaimer
+
+The purpose of this script is to download anime episodes in order to watch them later in case when Internet is not available. Please do NOT copy or distribute downloaded anime episodes to any third party. Watch them and delete them afterwards. Please use this script at your own responsibility.
+
+## You may like...
 
 ### Don't like animepahe? Want an alternative?
 
@@ -79,10 +117,6 @@ Check out [twistmoe-dl](https://github.com/KevCui/twistmoe-dl)
 
 Check out this script [tvdb-cli](https://github.com/KevCui/tvdb-cli)
 
-## Limitation
+---
 
-Recently, animepahe implemented Cloudflare DDoS prevention mechanism with reCAPTCHA challenge. Current method is to fetch necessary cookie value from browser opened by puppeteer. Using this method, user must solve reCAPTCHA correctly once per day. The reCAPTCHA page will be prompted in browser.
-
-## Disclaimer
-
-The purpose of this script is to download anime episodes in order to watch them later in case when Internet is not available. Please do NOT copy or distribute downloaded anime episodes to any third party. Watch them and delete them afterwards. Please use this script at your own responsibility.
+<a href="https://www.buymeacoffee.com/kevcui" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-orange.png" alt="Buy Me A Coffee" height="60px" width="217px"></a>
