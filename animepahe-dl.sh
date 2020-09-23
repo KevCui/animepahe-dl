@@ -124,9 +124,27 @@ get_anime_id() {
         | awk -F '&' '{print $1}'
 }
 
+get_episode_list() {
+    # $1: anime id
+    # $2: page number
+    $_CURL -sS "${_API_URL}?m=release&id=${1}&sort=episode_asc&page=${2}"
+}
+
 download_source() {
+    local id d p n
     mkdir -p "$_SCRIPT_PATH/$_ANIME_NAME"
-    $_CURL -sS "${_API_URL}?m=release&id=$(get_anime_id "$_ANIME_SLUG")&sort=episode_asc" > "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE"
+    id="$(get_anime_id "$_ANIME_SLUG")"
+    d="$(get_episode_list "$id" "1")"
+    p="$($_JQ -r '.last_page' <<< "$d")"
+
+    if [[ "$p" -gt "1" ]]; then
+        for i in $(seq 2 "$p"); do
+            n="$(get_episode_list "$id" "$i")"
+            d="$(echo "$d $n" | $_JQ -s '.[0].data + .[1].data | {data: .}')"
+        done
+    fi
+
+    echo "$d" > "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE"
 }
 
 get_episode_link() {
