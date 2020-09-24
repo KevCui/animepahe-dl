@@ -3,10 +3,10 @@
 # Download anime from animepahe using CLI
 #
 #/ Usage:
-#/   ./animepahe-dl.sh [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-l]
+#/   animepahe-dl.sh [-a <anime>] [-e <episode_num1,num2,num3-num4...>] [-l]
 #/
 #/ Options:
-#/   -s <slug>               Anime slug, can be found in $_ANIME_LIST_FILE
+#/   -a <anime>              Anime name, can be found in anime.list file
 #/   -e <num1,num3-num4...>  Optional, episode number to download
 #/                           multiple episode numbers seperated by ","
 #/                           episode range using "-"
@@ -42,10 +42,10 @@ set_var() {
 
 set_args() {
     expr "$*" : ".*--help" > /dev/null && usage
-    while getopts ":hls:e:" opt; do
+    while getopts ":hla:e:" opt; do
         case $opt in
-            s)
-                _ANIME_SLUG="$OPTARG"
+            a)
+                _ANIME_NAME="$OPTARG"
                 ;;
             e)
                 _ANIME_EPISODE="$OPTARG"
@@ -262,12 +262,13 @@ main() {
     set_args "$@"
     set_var
 
-    if [[ -z "${_ANIME_SLUG:-}" ]]; then
+    if [[ ! -s ./anime.list ]]; then
         download_anime_list
-        [[ ! -s "$_ANIME_LIST_FILE" ]] && print_error "$_ANIME_LIST_FILE not found!"
-        _ANIME_SLUG=$($_FZF < "$_ANIME_LIST_FILE" | awk -F']' '{print $1}' | sed -E 's/^\[//')
     fi
 
+    _ANIME_NAME="${_ANIME_NAME:-}"
+
+    _ANIME_SLUG=$($_FZF --query "$_ANIME_NAME" < "$_ANIME_LIST_FILE" | awk -F']' '{print $1}' | sed -E 's/^\[//')
     [[ "$_ANIME_SLUG" == "" ]] && print_error "Anime slug not found!"
     _ANIME_NAME=$(grep "$_ANIME_SLUG" "$_ANIME_LIST_FILE" | awk -F '] ' '{print $2}' | sed -E 's/\//_/g')
 

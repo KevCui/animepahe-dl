@@ -39,10 +39,10 @@
 
 ```
 Usage:
-  ./animepahe-dl.sh [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-l]
+  animepahe-dl.sh [-a <anime>] [-e <episode_num1,num2,num3-num4...>] [-l]
 
 Options:
-  -s <slug>               Anime slug, can be found in $_ANIME_LIST_FILE
+  -a <anime>              Anime name, can be found in anime.list file
   -e <num1,num3-num4...>  Optional, episode number to download
                           multiple episode numbers seperated by ","
                           episode range using "-"
