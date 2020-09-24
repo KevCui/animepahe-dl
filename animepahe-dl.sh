@@ -100,7 +100,7 @@ search_anime_by_name() {
     if [[ "$n" -eq "0" ]] ; then
         echo ""
     else
-        $_JQ -r '.data[] | "[\(.session)] \(.title)"' <<< "$d"
+        $_JQ -r '.data[] | "[\(.session)] \(.title)"' <<< "$d" | tee -a "$_ANIME_LIST_FILE"
     fi
 }
 
@@ -294,7 +294,7 @@ main() {
     fi
 
     [[ "$_ANIME_SLUG" == "" ]] && print_error "Anime slug not found!"
-    _ANIME_NAME=$(grep "$_ANIME_SLUG" "$_ANIME_LIST_FILE" | awk -F '] ' '{print $2}' | sed -E 's/\//_/g')
+    _ANIME_NAME=$(sort -u "$_ANIME_LIST_FILE" | grep "$_ANIME_SLUG" | awk -F '] ' '{print $2}' | sed -E 's/\//_/g')
 
     [[ "$_ANIME_NAME" == "" ]] && (print_warn "Anime name not found! Try again."; download_anime_list; exit 1)
 
