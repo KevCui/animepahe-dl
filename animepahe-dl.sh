@@ -114,6 +114,8 @@ get_token_and_cookie() {
 
     c=$(grep '_session' <<< "$h" | awk '{print $NF}')
 
+    [[ -z "$t" || -z "$c" ]] && (rm -f "$_CF_FILE" && print_error "Cannot fetch valid token, please retry!")
+
     echo "$t $c"
 }
 

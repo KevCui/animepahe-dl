@@ -125,7 +125,9 @@ OR the interactive way:
 
 ## Limitation
 
-Recently, animepahe implemented Cloudflare DDoS prevention mechanism with reCAPTCHA challenge. Current method is to fetch necessary cookie value from browser opened by puppeteer. Using this method, user must solve reCAPTCHA correctly once per day. The reCAPTCHA page will be prompted in browser.
+Recently, animepahe implemented Cloudflare DDoS prevention mechanism with reCAPTCHA challenge. Current method is to fetch necessary cookie value from browser opened by puppeteer. Using this method, user must solve reCAPTCHA correctly at least once per day. The reCAPTCHA page will be prompted in browser.
+
+Sometimes, cookie can be turned invalid by animepahe server for certain reason. In this case, the reCAPTCHA page will be prompted in browser in order to generate a valid cookie.
 
 ## Disclaimer
 
