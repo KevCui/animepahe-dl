@@ -4,7 +4,7 @@
 
 ## Table of Contents
 
-- [Dependency](#dependency)
+- [Dependencies](#dependencies)
 - [Installation](#installation)
 - [How to use](#how-to-use)
   - [Example](#example)
@@ -14,7 +14,7 @@
   - [Don't like animepahe? Want an alternative?](#dont-like-animepahe-want-an-alternative)
   - [What to know when the new episode of your favorite anime will be released?](#what-to-know-when-the-new-episode-of-your-favorite-anime-will-be-released)
 
-## Dependency
+## Dependencies
 
 - [jq](https://stedolan.github.io/jq/)
 - [pup](https://github.com/EricChiang/pup)
@@ -27,15 +27,15 @@
 - Update submodule and install npm packages, run command:
 
 ```bash
-~$ git clone https://github.com/KevCui/animepahe-dl.git
-~$ cd animepahe-dl
-~$ git submodule init
-~$ git submodule update
-~$ cd bin
-~$ npm i puppeteer-core commander
+$ git clone https://github.com/KevCui/animepahe-dl.git
+$ cd animepahe-dl
+$ git submodule init
+$ git submodule update
+$ cd bin
+$ npm i puppeteer-core commander
 ```
 
-## How to use
+## Usage
 
 ```
 Usage:
@@ -51,76 +51,24 @@ Options:
 
 ```
 
-### Example
+### Usage
 
-- In case, you don't know anime slug, simply run script. Search and select the right one in `fzf`:
-
-```
-~$ ./animepahe-dl.sh
-```
-
-- By default, anime slug is stored in `anime.list` file. Download "One Punch Man" season 2 episode 3:
+Search anime:
 
 ```
-~$ ./animepahe-dl.sh -s 82a257c6-d361-69e9-9c43-10b45032a660 -e 3
+$ ./animepahe-dl.sh
 ```
 
-- List "One Punch Man" season 2 all episodes:
+Download first two episodes:
 
 ```
-~$ ./animepahe-dl.sh -s 82a257c6-d361-69e9-9c43-10b45032a660
-[1] E1 2019-04-09 18:45:38
-[2] E2 2019-04-16 17:54:48
-[3] E3 2019-04-23 17:51:20
-[4] E4 2019-04-30 17:51:37
-[5] E5 2019-05-07 17:55:53
-[6] E6 2019-05-14 17:52:04
-[7] E7 2019-05-21 17:54:21
-[8] E8 2019-05-28 22:51:16
-[9] E9 2019-06-11 17:48:50
-[10] E10 2019-06-18 17:50:25
-[11] E11 2019-06-25 17:59:38
-[12] E12 2019-07-02 18:01:11
+$ ./animepahe-dl.sh -a 'one punch man' -e 1,2
 ```
 
-- Support batch downloads: list "One Punch Man" season 2 episode 2, 5, 6, 7:
+Stream first twelve episodes using [`mpv`](https://github.com/mpv-player/mpv):
 
 ```
-~$ ./animepahe-dl.sh -s 82a257c6-d361-69e9-9c43-10b45032a660 -e 2,2,5,6,7
-[INFO] Downloading Episode 2...
-...
-[INFO] Downloading Episode 5...
-...
-[INFO] Downloading Episode 6...
-...
-[INFO] Downloading Episode 7...
-...
-```
-
-OR using episode range:
-
-```
-~$ ./animepahe-dl.sh -s 82a257c6-d361-69e9-9c43-10b45032a660 -e 2,5-7
-[INFO] Downloading Episode 2...
-...
-[INFO] Downloading Episode 5...
-...
-[INFO] Downloading Episode 6...
-...
-[INFO] Downloading Episode 7...
-...
-```
-
-- Display only video link, used to pipe into `mpv` or other media player:
-
-```
-~$ mpv "$(./animepahe-dl.sh -s 82a257c6-d361-69e9-9c43-10b45032a660 -e 5 -l)"
-```
-
-OR the interactive way:
-
-```
-~$ mpv "$(./animepahe-dl.sh -l | grep 'https://')"
+$ ./animepahe-dl.sh -l -a 'one punch man' -e 1-12 | mpv --prefetch-playlist --playlist=-
 ```
 
 ## Limitation
