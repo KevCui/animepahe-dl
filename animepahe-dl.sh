@@ -3,10 +3,12 @@
 # Download anime from animepahe using CLI
 #
 #/ Usage:
-#/   ./animepahe-dl.sh [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-l]
+#/   ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-l]
 #/
 #/ Options:
+#/   -a <name>               Anime name
 #/   -s <slug>               Anime slug, can be found in $_ANIME_LIST_FILE
+#/                           ingored when "-a" is enabled
 #/   -e <num1,num3-num4...>  Optional, episode number to download
 #/                           multiple episode numbers seperated by ","
 #/                           episode range using "-"
@@ -42,8 +44,11 @@ set_var() {
 
 set_args() {
     expr "$*" : ".*--help" > /dev/null && usage
-    while getopts ":hls:e:" opt; do
+    while getopts ":hla:s:e:" opt; do
         case $opt in
+            a)
+                _INPUT_ANIME_NAME="$OPTARG"
+                ;;
             s)
                 _ANIME_SLUG="$OPTARG"
                 ;;
@@ -85,6 +90,18 @@ download_anime_list() {
         | grep "/anime/" \
         | sed -E 's/.*anime\//[/;s/" title="/] /;s/\">//' \
         > "$_ANIME_LIST_FILE"
+}
+
+search_anime_by_name() {
+    # $1: anime name
+    local d n
+    d="$($_CURL -sS "$_HOST/api?m=search&q=${1// /%20}")"
+    n="$($_JQ -r '.total' <<< "$d")"
+    if [[ "$n" -eq "0" ]] ; then
+        echo ""
+    else
+        $_JQ -r '.data[] | "[\(.session)] \(.title)"' <<< "$d"
+    fi
 }
 
 get_token_and_cookie() {
@@ -258,18 +275,26 @@ select_episodes_to_download() {
     echo "$s"
 }
 
+remove_brackets() {
+    awk -F']' '{print $1}' | sed -E 's/^\[//'
+}
+
 main() {
     set_args "$@"
     set_var
 
+    if [[ -n "${_INPUT_ANIME_NAME:-}" ]]; then
+        _ANIME_SLUG=$($_FZF -1 <<< "$(search_anime_by_name "$_INPUT_ANIME_NAME")" | remove_brackets)
+    fi
+
     if [[ -z "${_ANIME_SLUG:-}" ]]; then
         download_anime_list
         [[ ! -s "$_ANIME_LIST_FILE" ]] && print_error "$_ANIME_LIST_FILE not found!"
-        _ANIME_SLUG=$($_FZF < "$_ANIME_LIST_FILE" | awk -F']' '{print $1}' | sed -E 's/^\[//')
+        _ANIME_SLUG=$($_FZF < "$_ANIME_LIST_FILE" | remove_brackets)
     fi
 
     [[ "$_ANIME_SLUG" == "" ]] && print_error "Anime slug not found!"
-    _ANIME_NAME=$(grep "$_ANIME_SLUG" "$_ANIME_LIST_FILE" | awk -F '] ' '{print $2}' | sed -E 's/\//_/g')
+    _ANIME_NAME=$(grep "$_ANIME_SLUG" "$_ANIME_LIST_FILE" | remove_brackets)
 
     [[ "$_ANIME_NAME" == "" ]] && (print_warn "Anime name not found! Try again."; download_anime_list; exit 1)
 
