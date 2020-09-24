@@ -3,14 +3,15 @@
 # Download anime from animepahe using CLI
 #
 #/ Usage:
-#/   ./animepahe-dl.sh [-s <anime_slug>] [-e <episode_num1,num2...>] [-l]
+#/   ./animepahe-dl.sh [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-l]
 #/
 #/ Options:
-#/   -s <slug>          Anime slug, can be found in $_ANIME_LIST_FILE
-#/   -e <num1,num2...>  Optional, episode number to download
-#/                      multiple episode numbers seperated by ","
-#/   -l                 Optional, list video link only without downloading
-#/   -h | --help        Display this help message
+#/   -s <slug>               Anime slug, can be found in $_ANIME_LIST_FILE
+#/   -e <num1,num3-num4...>  Optional, episode number to download
+#/                           multiple episode numbers seperated by ","
+#/                           episode range using "-"
+#/   -l                      Optional, list video link only without downloading
+#/   -h | --help             Display this help message
 
 set -e
 set -u
@@ -160,15 +161,37 @@ get_episode_link() {
 
 download_episodes() {
     # $1: episode number string
+    local origel el uniqel
+    origel=()
     if [[ "$1" == *","* ]]; then
-        IFS=","
-        read -ra ADDR <<< "$1"
-        for e in "${ADDR[@]}"; do
-            download_episode "$e"
+        IFS="," read -ra ADDR <<< "$1"
+        for n in "${ADDR[@]}"; do
+            origel+=("$n")
         done
     else
-        download_episode "$1"
+        origel+=("$1")
     fi
+
+    el=()
+    for i in "${origel[@]}"; do
+        if [[ "$i" == *"-"* ]]; then
+            s=$(awk -F '-' '{print $1}' <<< "$i")
+            e=$(awk -F '-' '{print $2}' <<< "$i")
+            for n in $(seq "$s" "$e"); do
+                el+=("$n")
+            done
+        else
+            el+=("$i")
+        fi
+    done
+
+    IFS=" " read -ra uniqel <<< "$(printf '%s\n' "${el[@]}" | sort -u | tr '\n' ' ')"
+
+    [[ ${#uniqel[@]} == 0 ]] && print_error "Wrong episode number!"
+
+    for e in "${uniqel[@]}"; do
+        download_episode "$e"
+    done
 }
 
 get_cf_clearance() {

@@ -39,14 +39,16 @@
 
 ```
 Usage:
-  ./animepahe-dl.sh [-s <anime_slug>] [-e <episode_num1,num2...>] [-l]
+  ./animepahe-dl.sh [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-l]
 
 Options:
-  -s <slug>          Anime slug, can be found in $_ANIME_LIST_FILE
-  -e <num1,num2...>  Optional, episode number to download
-                     multiple episode numbers seperated by ","
-  -l                 Optional, list video link only without downloading
-  -h | --help        Display this help message
+  -s <slug>               Anime slug, can be found in $_ANIME_LIST_FILE
+  -e <num1,num3-num4...>  Optional, episode number to download
+                          multiple episode numbers seperated by ","
+                          episode range using "-"
+  -l                      Optional, list video link only without downloading
+  -h | --help             Display this help message
+
 ```
 
 ### Example
@@ -81,10 +83,26 @@ Options:
 [12] E12 2019-07-02 18:01:11
 ```
 
-- Support batch downloads: list "One Punch Man" season 2 episode 5, 6, 7:
+- Support batch downloads: list "One Punch Man" season 2 episode 2, 5, 6, 7:
 
 ```
-~$ ./animepahe-dl.sh -s 82a257c6-d361-69e9-9c43-10b45032a660 -e 5,6,7
+~$ ./animepahe-dl.sh -s 82a257c6-d361-69e9-9c43-10b45032a660 -e 2,2,5,6,7
+[INFO] Downloading Episode 2...
+...
+[INFO] Downloading Episode 5...
+...
+[INFO] Downloading Episode 6...
+...
+[INFO] Downloading Episode 7...
+...
+```
+
+OR using episode range:
+
+```
+~$ ./animepahe-dl.sh -s 82a257c6-d361-69e9-9c43-10b45032a660 -e 2,5-7
+[INFO] Downloading Episode 2...
+...
 [INFO] Downloading Episode 5...
 ...
 [INFO] Downloading Episode 6...
@@ -99,7 +117,7 @@ Options:
 ~$ mpv "$(./animepahe-dl.sh -s 82a257c6-d361-69e9-9c43-10b45032a660 -e 5 -l)"
 ```
 
-Or the interactive way:
+OR the interactive way:
 
 ```
 ~$ mpv "$(./animepahe-dl.sh -l | grep 'https://')"
