@@ -204,7 +204,7 @@ download_episode() {
 
     if [[ -z ${_LIST_LINK_ONLY:-} ]]; then
         print_info "Downloading Episode $1..."
-        $_FFMPEG -headers "Referer: $_REFERER_URL" -i "$pl" -c copy "$_SCRIPT_PATH/${_ANIME_NAME}/${1}.mp4"
+        $_FFMPEG -headers "Referer: $_REFERER_URL" -i "$pl" -c copy -v error -y "$_SCRIPT_PATH/${_ANIME_NAME}/${1}.mp4"
     else
         echo "$pl"
     fi
