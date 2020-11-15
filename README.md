@@ -5,7 +5,6 @@
 ## Table of Contents
 
 - [Dependency](#dependency)
-- [Installation](#installation)
 - [How to use](#how-to-use)
   - [Example](#example)
 - [Disclaimer](#disclaimer)
