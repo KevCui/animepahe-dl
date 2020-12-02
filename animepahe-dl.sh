@@ -23,11 +23,11 @@ usage() {
 }
 
 set_var() {
-    _CURL=$(command -v curl) || command_not_found "curl"
-    _JQ=$(command -v jq) || command_not_found "jq"
-    _FZF=$(command -v fzf) || command_not_found "fzf"
-    _NODE=$(command -v node) || command_not_found "node"
-    _FFMPEG=$(command -v ffmpeg) || command_not_found "ffmpeg"
+    _CURL="$(command -v curl)" || command_not_found "curl"
+    _JQ="$(command -v jq)" || command_not_found "jq"
+    _FZF="$(command -v fzf)" || command_not_found "fzf"
+    _NODE="$(command -v node)" || command_not_found "node"
+    _FFMPEG="$(command -v ffmpeg)" || command_not_found "ffmpeg"
 
     _HOST="https://animepahe.com"
     _ANIME_URL="$_HOST/anime"
@@ -166,7 +166,7 @@ get_playlist() {
 
 get_playlist_using_jsbeautify() {
     # $1: obfuscated script
-    _JSBEAUTIFY=$(command -v js-beautify) || command_not_found "js-beautify"
+    _JSBEAUTIFY="$(command -v js-beautify)" || command_not_found "js-beautify"
     sed -E "s/.*;eval/eval/" <<< "$1" \
     | $_JSBEAUTIFY --eval-code \
     | grep 'const source =' \
