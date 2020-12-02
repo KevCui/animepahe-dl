@@ -159,19 +159,7 @@ get_playlist() {
         | sed -E "s/.m3u8';.*/.m3u8/" \
         | sed -E "s/.*const source='//")
 
-    [[ -z "$l" ]] && l=$(get_playlist_using_jsbeautify "$s")
-
     echo "$l"
-}
-
-get_playlist_using_jsbeautify() {
-    # $1: obfuscated script
-    _JSBEAUTIFY="$(command -v js-beautify)" || command_not_found "js-beautify"
-    sed -E "s/.*;eval/eval/" <<< "$1" \
-    | $_JSBEAUTIFY --eval-code \
-    | grep 'const source =' \
-    | sed -E "s/.*http/http/" \
-    | sed -E "s/';$//"
 }
 
 download_episodes() {
