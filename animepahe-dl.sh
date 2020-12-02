@@ -23,12 +23,12 @@ usage() {
 }
 
 set_var() {
-    _CURL=$(command -v curl)
-    _JQ=$(command -v jq)
-    _PUP=$(command -v pup)
-    _FZF=$(command -v fzf)
-    _NODE=$(command -v node)
-    _FFMPEG=$(command -v ffmpeg)
+    _CURL=$(command -v curl) || command_not_found "curl"
+    _JQ=$(command -v jq) || command_not_found "jq"
+    _PUP=$(command -v pup) || command_not_found "pup"
+    _FZF=$(command -v fzf) || command_not_found "fzf"
+    _NODE=$(command -v node) || command_not_found "node"
+    _FFMPEG=$(command -v ffmpeg) || command_not_found "ffmpeg"
 
     _HOST="https://animepahe.com"
     _ANIME_URL="$_HOST/anime"
@@ -80,6 +80,11 @@ print_error() {
     # $1: error message
     printf "%b\n" "\033[31m[ERROR]\033[0m $1" >&2
     exit 1
+}
+
+command_not_found() {
+    # $1: command name
+    print_error "$1 command not found!"
 }
 
 download_anime_list() {
@@ -148,14 +153,28 @@ get_playlist() {
     # $1: episode link
     local s l
     s=$($_CURL -sS -H "Referer: $_REFERER_URL" "$1" \
+        | tee raw \
         | grep '<script>' \
-        | sed -E 's/<script>//')
+        | sed -E 's/<script>//' | tee debug)
 
     l=$($_NODE -e "$s" 2>&1 \
         | grep 'source=' \
         | sed -E "s/.m3u8';.*/.m3u8/" \
         | sed -E "s/.*const source='//")
+
+    [[ -z "$l" ]] && l=$(get_playlist_using_jsbeautify "$s")
+
     echo "$l"
+}
+
+get_playlist_using_jsbeautify() {
+    # $1: obfuscated script
+    _JSBEAUTIFY=$(command -v js-beautify) || command_not_found "js-beautify"
+    sed -E "s/.*;eval/eval/" <<< "$1" \
+    | $_JSBEAUTIFY --eval-code \
+    | grep 'const source =' \
+    | sed -E "s/.*http/http/" \
+    | sed -E "s/';$//"
 }
 
 download_episodes() {

@@ -19,6 +19,7 @@
 - [fzf](https://github.com/junegunn/fzf)
 - [Node.js](https://nodejs.org/en/download/)
 - [ffmpeg](https://ffmpeg.org/download.html)
+- [js-beautify](https://github.com/beautify-web/js-beautify) (Optional) :warning: **Do install Python version** `pip install jsbeautifier`
 
 ## How to use
 
