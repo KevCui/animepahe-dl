@@ -153,9 +153,8 @@ get_playlist() {
     # $1: episode link
     local s l
     s=$($_CURL -sS -H "Referer: $_REFERER_URL" "$1" \
-        | tee raw \
         | grep '<script>' \
-        | sed -E 's/<script>//' | tee debug)
+        | sed -E 's/<script>//')
 
     l=$($_NODE -e "$s" 2>&1 \
         | grep 'source=' \
