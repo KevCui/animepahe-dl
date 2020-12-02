@@ -15,7 +15,6 @@
 ## Dependency
 
 - [jq](https://stedolan.github.io/jq/)
-- [pup](https://github.com/EricChiang/pup)
 - [fzf](https://github.com/junegunn/fzf)
 - [Node.js](https://nodejs.org/en/download/)
 - [ffmpeg](https://ffmpeg.org/download.html)

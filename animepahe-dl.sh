@@ -25,7 +25,6 @@ usage() {
 set_var() {
     _CURL=$(command -v curl) || command_not_found "curl"
     _JQ=$(command -v jq) || command_not_found "jq"
-    _PUP=$(command -v pup) || command_not_found "pup"
     _FZF=$(command -v fzf) || command_not_found "fzf"
     _NODE=$(command -v node) || command_not_found "node"
     _FFMPEG=$(command -v ffmpeg) || command_not_found "ffmpeg"
@@ -89,10 +88,9 @@ command_not_found() {
 
 download_anime_list() {
     $_CURL -sS "$_ANIME_URL" \
-        | $_PUP 'div a' \
-        | grep "/anime/" \
-        | sed -E 's/.*anime\//[/;s/" title="/] /;s/\">//' \
-        > "$_ANIME_LIST_FILE"
+    | grep "/anime/" \
+    | sed -E 's/.*anime\//[/;s/" title="/] /;s/\">.*//' \
+    > "$_ANIME_LIST_FILE"
 }
 
 search_anime_by_name() {
@@ -110,9 +108,9 @@ search_anime_by_name() {
 get_anime_id() {
     # $1: anime slug
     $_CURL -sS "$_ANIME_URL/$1" \
-        | grep getJSON \
-        | sed -E 's/.*id=//' \
-        | awk -F '&' '{print $1}'
+    | grep getJSON \
+    | sed -E 's/.*id=//' \
+    | awk -F '&' '{print $1}'
 }
 
 get_episode_list() {
