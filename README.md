@@ -1,6 +1,6 @@
 # animepahhe-dl
 
-> Bash script to download anime from [animepahe](https://animepahe.com/)
+> Download anime videos from [animepahe](https://animepahe.com/) in terminal
 
 ## Table of Contents
 
