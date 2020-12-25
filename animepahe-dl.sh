@@ -1,19 +1,21 @@
 #!/usr/bin/env bash
 #
-# Download anime from animepahe using CLI
+# Download anime from animepahe in terminal
 #
 #/ Usage:
-#/   ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-l]
+#/   ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-l] [-r <resolution>]
 #/
 #/ Options:
-#/   -a <name>               Anime name
-#/   -s <slug>               Anime slug, can be found in $_ANIME_LIST_FILE
+#/   -a <name>               anime name
+#/   -s <slug>               anime slug, can be found in $_ANIME_LIST_FILE
 #/                           ingored when "-a" is enabled
-#/   -e <num1,num3-num4...>  Optional, episode number to download
+#/   -e <num1,num3-num4...>  optional, episode number to download
 #/                           multiple episode numbers seperated by ","
 #/                           episode range using "-"
-#/   -l                      Optional, show m3u8 playlist link without downloading videos
-#/   -h | --help             Display this help message
+#/   -l                      optional, show m3u8 playlist link without downloading videos
+#/   -r                      optional, specify resolution: "1080", "720"...
+#/                           by default, the highest resolution is selected
+#/   -h | --help             display this help message
 
 set -e
 set -u
@@ -41,7 +43,7 @@ set_var() {
 
 set_args() {
     expr "$*" : ".*--help" > /dev/null && usage
-    while getopts ":hla:s:e:" opt; do
+    while getopts ":hla:s:e:r:" opt; do
         case $opt in
             a)
                 _INPUT_ANIME_NAME="$OPTARG"
@@ -55,6 +57,9 @@ set_args() {
             l)
                 _LIST_LINK_ONLY=true
                 ;;
+            r)
+                _ANIME_RESOLUTION="$OPTARG"
+                ;;
             h)
                 usage
                 ;;
@@ -67,12 +72,12 @@ set_args() {
 
 print_info() {
     # $1: info message
-    printf "%b\n" "\033[32m[INFO]\033[0m $1" >&2
+    [[ -z "${_LIST_LINK_ONLY:-}" ]] && printf "%b\n" "\033[32m[INFO]\033[0m $1" >&2
 }
 
 print_warn() {
     # $1: warning message
-    printf "%b\n" "\033[33m[WARNING]\033[0m $1" >&2
+    [[ -z "${_LIST_LINK_ONLY:-}" ]] && printf "%b\n" "\033[33m[WARNING]\033[0m $1" >&2
 }
 
 print_error() {
@@ -138,13 +143,25 @@ download_source() {
 
 get_episode_link() {
     # $1: episode number
-    local i s
+    local i s d r=""
     i=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .anime_id' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     s=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .session' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     [[ "$i" == "" ]] && print_error "Episode not found!"
-    "$_CURL" -sS "${_API_URL}?m=embed&id=${i}&session=${s}&p=kwik" \
-        | "$_JQ" -r '.data[][].kwik' \
-        | tail -1
+    d="$("$_CURL" -sS "${_API_URL}?m=embed&id=${i}&session=${s}&p=kwik")"
+
+    if [[ -n "${_ANIME_RESOLUTION:-}" ]]; then
+        print_info "Select resolution: $_ANIME_RESOLUTION"
+        r="$("$_JQ" -r '.data[][$resolution] | select(. != null) | .kwik' \
+            --arg resolution "$_ANIME_RESOLUTION" <<< "$d")"
+    fi
+
+    if [[ -z "$r" ]]; then
+        [[ -n "${_ANIME_RESOLUTION:-}" ]] && \
+        print_warn "Selected resolution not available, fallback to default"
+        "$_JQ" -r '.data[][].kwik' <<< "$d" | tail -1
+    else
+        echo "$r"
+    fi
 }
 
 get_playlist() {
