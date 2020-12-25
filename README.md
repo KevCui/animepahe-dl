@@ -29,10 +29,10 @@ Options:
   -a <name>               anime name
   -s <slug>               anime slug, can be found in $_ANIME_LIST_FILE
                           ingored when "-a" is enabled
-  -e <num1,num3-num4...>  ;ptional, episode number to download
+  -e <num1,num3-num4...>  optional, episode number to download
                           multiple episode numbers seperated by ","
                           episode range using "-"
-  -l                      ;ptional, show m3u8 playlost link without downloading videos
+  -l                      optional, show m3u8 playlost link without downloading videos
   -r                      optional, specify resolution: "1080", "720"...
                           by default, the highest resolution is selected
   -h | --help             display this help message
