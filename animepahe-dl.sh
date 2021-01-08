@@ -28,7 +28,6 @@ set_var() {
     _CURL="$(command -v curl)" || command_not_found "curl"
     _JQ="$(command -v jq)" || command_not_found "jq"
     _FZF="$(command -v fzf)" || command_not_found "fzf"
-    _NODE="$(command -v node)" || command_not_found "node"
     _FFMPEG="$(command -v ffmpeg)" || command_not_found "ffmpeg"
 
     _HOST="https://animepahe.com"
@@ -171,10 +170,21 @@ get_playlist() {
         | grep '<script>' \
         | sed -E 's/<script>//')
 
-    l=$("$_NODE" -e "$s" 2>&1 \
-        | grep 'source=' \
-        | sed -E "s/.m3u8';.*/.m3u8/" \
-        | sed -E "s/.*const source='//")
+    # use bash string replacement to avoid sed
+    # this looks a little bit cryptic but should always work as it is cryptic, but not fully dynamic
+    l="$(
+    : "${s//*progress|/}" && files="${_//|*/}"
+    : "${s//*key|/}" && server1="${_//|*/}"
+    : "${s//*${server1}|/}" && server2="${_//|*/}"
+    : "${s//*volume|/}" && domain1="${_//|*/}"
+    : "${s//*${server2}|/}" && stream="${_//|*/}"
+    : "${s//*${stream}|/}" && domain2="${_//|*/}"
+    : "${s//*storage|/}" && storage="${_//|*/}"
+    : "${s//*querySelector|/}" && key="${_//|*/}"
+    : "${s//*document|/}" && document="${_//|*/}"
+    : "${s//*${domain2}|/}" && format="${_//|*/}"
+    printf "%s\n" "https://${files}-${server1}-${server2}.${domain1}.${domain2}/${stream}/${storage}/${key}/${document}.${format}"
+)"
 
     echo "$l"
 }
