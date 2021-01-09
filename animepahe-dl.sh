@@ -95,9 +95,7 @@ download_anime_list() {
     "$_CURL" --compressed -sS "$_ANIME_URL" \
     | grep "/anime/" \
     | sed -E 's/.*anime\//[/;s/" title="/] /;s/\">.*//' \
-    > "$_ANIME_LIST_FILE" || {
-        print_error "Cannot fetch $_ANIME_LIST_FILE !"
-    }
+    > "$_ANIME_LIST_FILE"
 }
 
 search_anime_by_name() {
@@ -251,14 +249,11 @@ main() {
 
     if [[ -n "${_INPUT_ANIME_NAME:-}" ]]; then
         _ANIME_SLUG=$("$_FZF" -1 <<< "$(search_anime_by_name "$_INPUT_ANIME_NAME")" | remove_brackets)
-    fi
-
-    if [[ -z "${_ANIME_SLUG:-}" ]]; then
+    else
         download_anime_list
-        _ANIME_SLUG=$("$_FZF" < "$_ANIME_LIST_FILE" | remove_brackets)
-    # when script is executed for the first time and -s option is used, but anime list is not fetched yet
-    elif [[ ! -s "$_ANIME_LIST_FILE" ]]; then
-        download_anime_list
+        if [[ -z "${_ANIME_SLUG:-}" ]]; then
+            _ANIME_SLUG=$("$_FZF" < "$_ANIME_LIST_FILE" | remove_brackets)
+        fi
     fi
 
     [[ "$_ANIME_SLUG" == "" ]] && print_error "Anime slug not found!"
