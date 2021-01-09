@@ -92,7 +92,7 @@ command_not_found() {
 }
 
 download_anime_list() {
-    "$_CURL" -sS "$_ANIME_URL" \
+    "$_CURL" --compressed -sS "$_ANIME_URL" \
     | grep "/anime/" \
     | sed -E 's/.*anime\//[/;s/" title="/] /;s/\">.*//' \
     > "$_ANIME_LIST_FILE"
@@ -101,7 +101,7 @@ download_anime_list() {
 search_anime_by_name() {
     # $1: anime name
     local d n
-    d="$("$_CURL" -sS "$_HOST/api?m=search&q=${1// /%20}")"
+    d="$("$_CURL" --compressed -sS "$_HOST/api?m=search&q=${1// /%20}")"
     n="$("$_JQ" -r '.total' <<< "$d")"
     if [[ "$n" -eq "0" ]] ; then
         echo ""
@@ -112,7 +112,7 @@ search_anime_by_name() {
 
 get_anime_id() {
     # $1: anime slug
-    "$_CURL" -sS "$_ANIME_URL/$1" \
+    "$_CURL" --compressed -sS "$_ANIME_URL/$1" \
     | grep getJSON \
     | sed -E 's/.*id=//' \
     | awk -F '&' '{print $1}'
@@ -121,7 +121,7 @@ get_anime_id() {
 get_episode_list() {
     # $1: anime id
     # $2: page number
-    "$_CURL" -sS "${_API_URL}?m=release&id=${1}&sort=episode_asc&page=${2}"
+    "$_CURL" --compressed -sS "${_API_URL}?m=release&id=${1}&sort=episode_asc&page=${2}"
 }
 
 download_source() {
@@ -147,7 +147,7 @@ get_episode_link() {
     i=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .anime_id' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     s=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .session' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     [[ "$i" == "" ]] && print_error "Episode not found!"
-    d="$("$_CURL" -sS "${_API_URL}?m=embed&id=${i}&session=${s}&p=kwik")"
+    d="$("$_CURL" --compressed -sS "${_API_URL}?m=embed&id=${i}&session=${s}&p=kwik")"
 
     if [[ -n "${_ANIME_RESOLUTION:-}" ]]; then
         print_info "Select resolution: $_ANIME_RESOLUTION"
@@ -167,7 +167,7 @@ get_episode_link() {
 get_playlist() {
     # $1: episode link
     local s l
-    s=$("$_CURL" -sS -H "Referer: $_REFERER_URL" "$1" \
+    s=$("$_CURL" --compressed -sS -H "Referer: $_REFERER_URL" "$1" \
         | grep '<script>' \
         | sed -E 's/<script>//')
 
@@ -249,12 +249,11 @@ main() {
 
     if [[ -n "${_INPUT_ANIME_NAME:-}" ]]; then
         _ANIME_SLUG=$("$_FZF" -1 <<< "$(search_anime_by_name "$_INPUT_ANIME_NAME")" | remove_brackets)
-    fi
-
-    if [[ -z "${_ANIME_SLUG:-}" ]]; then
+    else
         download_anime_list
-        [[ ! -s "$_ANIME_LIST_FILE" ]] && print_error "$_ANIME_LIST_FILE not found!"
-        _ANIME_SLUG=$("$_FZF" < "$_ANIME_LIST_FILE" | remove_brackets)
+        if [[ -z "${_ANIME_SLUG:-}" ]]; then
+            _ANIME_SLUG=$("$_FZF" < "$_ANIME_LIST_FILE" | remove_brackets)
+        fi
     fi
 
     [[ "$_ANIME_SLUG" == "" ]] && print_error "Anime slug not found!"
