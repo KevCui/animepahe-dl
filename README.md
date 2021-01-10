@@ -110,7 +110,7 @@ $ ./animepahe-dl.sh -s 8f6cbba2-40f6-38bd-5898-a6f7c1fe967a -e 2,5-7
 
 - Download all episodes using `*`:
 
-````bash
+```bash
 $ ./animepahe-dl.sh -s 8f6cbba2-40f6-38bd-5898-a6f7c1fe967a -e '*'
 [INFO] Downloading Episode 1...
 ...
@@ -118,6 +118,7 @@ $ ./animepahe-dl.sh -s 8f6cbba2-40f6-38bd-5898-a6f7c1fe967a -e '*'
 ...
 [INFO] Downloading Episode 3...
 ...
+```
 
 - Specify video resolution:
 
@@ -125,7 +126,7 @@ $ ./animepahe-dl.sh -s 8f6cbba2-40f6-38bd-5898-a6f7c1fe967a -e '*'
 $ ./animepahe-dl.sh -a jujutsu -e 5 -r 360
 [INFO] Select resolution: 360
 [INFO] Downloading Episode 5...
-````
+```
 
 - Show only m3u8 playlist link, without downloading video file:
 
