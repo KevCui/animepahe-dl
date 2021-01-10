@@ -59,13 +59,13 @@ $ ./animepahe-dl.sh -a 'attack on titan'
 - By default, anime slug is stored in `./anime.list` file. Download "One Punch Man" season 2 episode 3:
 
 ```bash
-$ ./animepahe-dl.sh -s 8f6cbba2-40f6-38bd-5898-a6f7c1fe967a -e 3
+$ ./animepahe-dl.sh -s 308f5756-6715-e404-998d-92f16b9d9858 -e 3
 ```
 
 - List "One Punch Man" season 2 all episodes:
 
 ```bash
-$ ./animepahe-dl.sh -s 8f6cbba2-40f6-38bd-5898-a6f7c1fe967a
+$ ./animepahe-dl.sh -s 308f5756-6715-e404-998d-92f16b9d9858
 [1] E1 2019-04-09 18:45:38
 [2] E2 2019-04-16 17:54:48
 [3] E3 2019-04-23 17:51:20
@@ -83,7 +83,7 @@ $ ./animepahe-dl.sh -s 8f6cbba2-40f6-38bd-5898-a6f7c1fe967a
 - Support batch downloads: list "One Punch Man" season 2 episode 2, 5, 6, 7:
 
 ```bash
-$ ./animepahe-dl.sh -s 8f6cbba2-40f6-38bd-5898-a6f7c1fe967a -e 2,5,6,7
+$ ./animepahe-dl.sh -s 308f5756-6715-e404-998d-92f16b9d9858 -e 2,5,6,7
 [INFO] Downloading Episode 2...
 ...
 [INFO] Downloading Episode 5...
@@ -97,7 +97,7 @@ $ ./animepahe-dl.sh -s 8f6cbba2-40f6-38bd-5898-a6f7c1fe967a -e 2,5,6,7
 OR using episode range:
 
 ```bash
-$ ./animepahe-dl.sh -s 8f6cbba2-40f6-38bd-5898-a6f7c1fe967a -e 2,5-7
+$ ./animepahe-dl.sh -s 308f5756-6715-e404-998d-92f16b9d9858 -e 2,5-7
 [INFO] Downloading Episode 2...
 ...
 [INFO] Downloading Episode 5...
@@ -111,7 +111,7 @@ $ ./animepahe-dl.sh -s 8f6cbba2-40f6-38bd-5898-a6f7c1fe967a -e 2,5-7
 - Download all episodes using `*`:
 
 ```bash
-$ ./animepahe-dl.sh -s 8f6cbba2-40f6-38bd-5898-a6f7c1fe967a -e '*'
+$ ./animepahe-dl.sh -s 308f5756-6715-e404-998d-92f16b9d9858 -e '*'
 [INFO] Downloading Episode 1...
 ...
 [INFO] Downloading Episode 2...
@@ -131,14 +131,14 @@ $ ./animepahe-dl.sh -a jujutsu -e 5 -r 360
 - Show only m3u8 playlist link, without downloading video file:
 
 ```bash
-$ ./animepahe-dl.sh -s 8f6cbba2-40f6-38bd-5898-a6f7c1fe967a -e 5 -l
+$ ./animepahe-dl.sh -s 308f5756-6715-e404-998d-92f16b9d9858 -e 5 -l
 ...
 ```
 
 It's useful to toss m3u8 into media player and stream:
 
 ```bash
-$ mpv --http-header-fields="Referer: https://kwik.cx/" "$(./animepahe-dl.sh -s 8f6cbba2-40f6-38bd-5898-a6f7c1fe967a -e 5 -l)"
+$ mpv --http-header-fields="Referer: https://kwik.cx/" "$(./animepahe-dl.sh -s 308f5756-6715-e404-998d-92f16b9d9858 -e 5 -l)"
 ```
 
 ## Disclaimer
