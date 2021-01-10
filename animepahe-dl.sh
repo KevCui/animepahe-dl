@@ -12,7 +12,7 @@
 #/   -e <num1,num3-num4...>  optional, episode number to download
 #/                           multiple episode numbers seperated by ","
 #/                           episode range using "-"
-#/                           all eposidos using "*"
+#/                           all episodes using "*"
 #/   -l                      optional, show m3u8 playlist link without downloading videos
 #/   -r                      optional, specify resolution: "1080", "720"...
 #/                           by default, the highest resolution is selected
