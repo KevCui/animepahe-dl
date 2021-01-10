@@ -11,8 +11,8 @@
 #/                           ignored when "-a" is enabled
 #/   -e <num1,num3-num4...>  optional, episode number to download
 #/                           multiple episode numbers seperated by ","
-#/   -e all                  To download all the available episodes
 #/                           episode range using "-"
+#/                           all eposidos using "*"
 #/   -l                      optional, show m3u8 playlist link without downloading videos
 #/   -r                      optional, specify resolution: "1080", "720"...
 #/                           by default, the highest resolution is selected
@@ -195,6 +195,12 @@ download_episodes() {
 
     el=()
     for i in "${origel[@]}"; do
+        if [[ "$i" == *"*"* ]]; then
+            i="1-$("$_JQ" -r '.data[].episode' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" \
+                   | sort -nu \
+                   | tail -1)"
+        fi
+
         if [[ "$i" == *"-"* ]]; then
             s=$(awk -F '-' '{print $1}' <<< "$i")
             e=$(awk -F '-' '{print $2}' <<< "$i")
@@ -234,22 +240,9 @@ download_episode() {
 
 select_episodes_to_download() {
     [[ "$(grep 'data' -c "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")" -eq "0" ]] && print_error "No episode available!"
-    case "${_ANIME_EPISODE:-}" in
-        '')
-            "$_JQ" -r '.data[] | "[\(.episode | tonumber)] E\(.episode | tonumber) \(.created_at)"' <"$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" >&2
-            echo -n "Which episode(s) to downolad: " >&2
-            read -r s
-            ;;
-        *) case "${_ANIME_EPISODE:-}" in
-            all)
-                # use .[-1] to get the last entry
-                s="1-$(jq -r '.data[-1] | "\(.episode | tonumber)"' <"$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")"
-                ;;
-            *)
-                s="${_ANIME_EPISODE:-}"
-                ;;
-        esac ;;
-    esac
+    "$_JQ" -r '.data[] | "[\(.episode | tonumber)] E\(.episode | tonumber) \(.created_at)"' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" >&2
+    echo -n "Which episode(s) to downolad: " >&2
+    read -r s
     echo "$s"
 }
 
@@ -284,7 +277,7 @@ main() {
 
     download_source
 
-    _ANIME_EPISODE=$(select_episodes_to_download)
+    [[ -z "${_ANIME_EPISODE:-}" ]] && _ANIME_EPISODE=$(select_episodes_to_download)
     download_episodes "$_ANIME_EPISODE"
 }
 

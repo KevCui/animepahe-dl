@@ -28,11 +28,11 @@ Usage:
 Options:
   -a <name>               anime name
   -s <slug>               anime slug, can be found in $_ANIME_LIST_FILE
-                          ingored when "-a" is enabled
+                          ignored when "-a" is enabled
   -e <num1,num3-num4...>  optional, episode number to download
                           multiple episode numbers seperated by ","
                           episode range using "-"
-  -e all                  To download all the available episodes
+                          all eposidos using "*"
   -l                      optional, show m3u8 playlost link without downloading videos
   -r                      optional, specify resolution: "1080", "720"...
                           by default, the highest resolution is selected
@@ -108,13 +108,24 @@ $ ./animepahe-dl.sh -s 8f6cbba2-40f6-38bd-5898-a6f7c1fe967a -e 2,5-7
 ...
 ```
 
+- Download all episodes using `*`:
+
+````bash
+$ ./animepahe-dl.sh -s 8f6cbba2-40f6-38bd-5898-a6f7c1fe967a -e '*'
+[INFO] Downloading Episode 1...
+...
+[INFO] Downloading Episode 2...
+...
+[INFO] Downloading Episode 3...
+...
+
 - Specify video resolution:
 
 ```bash
 $ ./animepahe-dl.sh -a jujutsu -e 5 -r 360
 [INFO] Select resolution: 360
 [INFO] Downloading Episode 5...
-```
+````
 
 - Show only m3u8 playlist link, without downloading video file:
 
