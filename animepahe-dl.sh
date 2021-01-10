@@ -8,7 +8,7 @@
 #/ Options:
 #/   -a <name>               anime name
 #/   -s <slug>               anime slug, can be found in $_ANIME_LIST_FILE
-#/                           ingored when "-a" is enabled
+#/                           ignored when "-a" is enabled
 #/   -e <num1,num3-num4...>  optional, episode number to download
 #/                           multiple episode numbers seperated by ","
 #/   -e all                  To download all the available episodes
