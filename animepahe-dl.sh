@@ -8,10 +8,11 @@
 #/ Options:
 #/   -a <name>               anime name
 #/   -s <slug>               anime slug, can be found in $_ANIME_LIST_FILE
-#/                           ingored when "-a" is enabled
+#/                           ignored when "-a" is enabled
 #/   -e <num1,num3-num4...>  optional, episode number to download
 #/                           multiple episode numbers seperated by ","
 #/                           episode range using "-"
+#/                           all episodes using "*"
 #/   -l                      optional, show m3u8 playlist link without downloading videos
 #/   -r                      optional, specify resolution: "1080", "720"...
 #/                           by default, the highest resolution is selected
@@ -194,6 +195,12 @@ download_episodes() {
 
     el=()
     for i in "${origel[@]}"; do
+        if [[ "$i" == *"*"* ]]; then
+            i="1-$("$_JQ" -r '.data[].episode' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" \
+                   | sort -nu \
+                   | tail -1)"
+        fi
+
         if [[ "$i" == *"-"* ]]; then
             s=$(awk -F '-' '{print $1}' <<< "$i")
             e=$(awk -F '-' '{print $2}' <<< "$i")
@@ -233,7 +240,7 @@ download_episode() {
 
 select_episodes_to_download() {
     [[ "$(grep 'data' -c "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")" -eq "0" ]] && print_error "No episode available!"
-    "$_JQ" -r '.data[] | "[\(.episode | tonumber)] E\(.episode | tonumber) \(.created_at)"' < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" >&2
+    "$_JQ" -r '.data[] | "[\(.episode | tonumber)] E\(.episode | tonumber) \(.created_at)"' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" >&2
     echo -n "Which episode(s) to downolad: " >&2
     read -r s
     echo "$s"
