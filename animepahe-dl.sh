@@ -3,7 +3,7 @@
 # Download anime from animepahe in terminal
 #
 #/ Usage:
-#/   ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-l] [-r <resolution>]
+#/   ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-l] [-r <resolution>] [-d]
 #/
 #/ Options:
 #/   -a <name>               anime name
@@ -16,6 +16,7 @@
 #/   -l                      optional, show m3u8 playlist link without downloading videos
 #/   -r                      optional, specify resolution: "1080", "720"...
 #/                           by default, the highest resolution is selected
+#/   -d                      enable debug mode
 #/   -h | --help             display this help message
 
 set -e
@@ -44,7 +45,7 @@ set_var() {
 
 set_args() {
     expr "$*" : ".*--help" > /dev/null && usage
-    while getopts ":hla:s:e:r:" opt; do
+    while getopts ":hlda:s:e:r:" opt; do
         case $opt in
             a)
                 _INPUT_ANIME_NAME="$OPTARG"
@@ -60,6 +61,9 @@ set_args() {
                 ;;
             r)
                 _ANIME_RESOLUTION="$OPTARG"
+                ;;
+            d)  _DEBUG_MODE=true
+                set -x
                 ;;
             h)
                 usage
@@ -223,7 +227,7 @@ download_episodes() {
 
 download_episode() {
     # $1: episode number
-    local l pl
+    local l pl erropt=''
     l=$(get_episode_link "$1")
     [[ "$l" != *"/"* ]] && print_error "Wrong download link or episode not found!"
 
@@ -232,7 +236,8 @@ download_episode() {
 
     if [[ -z ${_LIST_LINK_ONLY:-} ]]; then
         print_info "Downloading Episode $1..."
-        "$_FFMPEG" -headers "Referer: $_REFERER_URL" -i "$pl" -c copy -v error -y "$_SCRIPT_PATH/${_ANIME_NAME}/${1}.mp4"
+        [[ -z "${_DEBUG_MODE:-}" ]] && erropt="-v error"
+        "$_FFMPEG" -headers "Referer: $_REFERER_URL" -i "$pl" -c copy $erropt -y "$_SCRIPT_PATH/${_ANIME_NAME}/${1}.mp4"
     else
         echo "$pl"
     fi

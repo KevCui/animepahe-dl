@@ -23,7 +23,7 @@
 
 ```
 Usage:
-  ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-l] [-r <resolution>]
+  ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-l] [-r <resolution>] [-d]
 
 Options:
   -a <name>               anime name
@@ -36,6 +36,7 @@ Options:
   -l                      optional, show m3u8 playlost link without downloading videos
   -r                      optional, specify resolution: "1080", "720"...
                           by default, the highest resolution is selected
+  -d                      enable debug mode
   -h | --help             display this help message
 ```
 
