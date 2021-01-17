@@ -62,7 +62,8 @@ set_args() {
             r)
                 _ANIME_RESOLUTION="$OPTARG"
                 ;;
-            d)  _DEBUG_MODE=true
+            d)
+                _DEBUG_MODE=true
                 set -x
                 ;;
             h)
@@ -108,7 +109,7 @@ search_anime_by_name() {
     local d n
     d="$("$_CURL" --compressed -sS "$_HOST/api?m=search&q=${1// /%20}")"
     n="$("$_JQ" -r '.total' <<< "$d")"
-    if [[ "$n" -eq "0" ]] ; then
+    if [[ "$n" -eq "0" ]]; then
         echo ""
     else
         "$_JQ" -r '.data[] | "[\(.session)] \(.title)"' <<< "$d" | tee -a "$_ANIME_LIST_FILE"
@@ -161,8 +162,8 @@ get_episode_link() {
     fi
 
     if [[ -z "$r" ]]; then
-        [[ -n "${_ANIME_RESOLUTION:-}" ]] && \
-        print_warn "Selected resolution not available, fallback to default"
+        [[ -n "${_ANIME_RESOLUTION:-}" ]] &&
+            print_warn "Selected resolution not available, fallback to default"
         "$_JQ" -r '.data[][].kwik' <<< "$d" | tail -1
     else
         echo "$r"
@@ -201,8 +202,8 @@ download_episodes() {
     for i in "${origel[@]}"; do
         if [[ "$i" == *"*"* ]]; then
             i="1-$("$_JQ" -r '.data[].episode' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" \
-                   | sort -nu \
-                   | tail -1)"
+                | sort -nu \
+                | tail -1)"
         fi
 
         if [[ "$i" == *"-"* ]]; then
@@ -270,15 +271,19 @@ main() {
 
     [[ "$_ANIME_SLUG" == "" ]] && print_error "Anime slug not found!"
     _ANIME_NAME=$(sort -u "$_ANIME_LIST_FILE" \
-                | grep "$_ANIME_SLUG" \
-                | awk -F '] ' '{print $2}' \
-                | sed -E 's/\//_/g' \
-                | sed -E 's/\"/_/g' \
-                | sed -E 's/\?/_/g' \
-                | sed -E 's/\*/_/g' \
-                | sed -E 's/\:/_/g')
+        | grep "$_ANIME_SLUG" \
+        | awk -F '] ' '{print $2}' \
+        | sed -E 's/\//_/g' \
+        | sed -E 's/\"/_/g' \
+        | sed -E 's/\?/_/g' \
+        | sed -E 's/\*/_/g' \
+        | sed -E 's/\:/_/g')
 
-    [[ "$_ANIME_NAME" == "" ]] && (print_warn "Anime name not found! Try again."; download_anime_list; exit 1)
+    [[ "$_ANIME_NAME" == "" ]] && (
+        print_warn "Anime name not found! Try again."
+        download_anime_list
+        exit 1
+    )
 
     download_source
 
