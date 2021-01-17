@@ -279,11 +279,11 @@ main() {
         | sed -E 's/\*/_/g' \
         | sed -E 's/\:/_/g')
 
-    [[ "$_ANIME_NAME" == "" ]] && (
+    if [[ "$_ANIME_NAME" == "" ]]; then
         print_warn "Anime name not found! Try again."
         download_anime_list
         exit 1
-    )
+    fi
 
     download_source
 
