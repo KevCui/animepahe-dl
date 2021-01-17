@@ -98,10 +98,10 @@ command_not_found() {
 }
 
 download_anime_list() {
-    "$_CURL" --compressed -sS "$_ANIME_URL" |
-        grep "/anime/" |
-        sed -E 's/.*anime\//[/;s/" title="/] /;s/\">.*//' \
-            > "$_ANIME_LIST_FILE"
+    "$_CURL" --compressed -sS "$_ANIME_URL" \
+    | grep "/anime/" \
+    | sed -E 's/.*anime\//[/;s/" title="/] /;s/\">.*//' \
+    > "$_ANIME_LIST_FILE"
 }
 
 search_anime_by_name() {
@@ -118,10 +118,10 @@ search_anime_by_name() {
 
 get_anime_id() {
     # $1: anime slug
-    "$_CURL" --compressed -sS "$_ANIME_URL/$1" |
-        grep getJSON |
-        sed -E 's/.*id=//' |
-        awk -F '&' '{print $1}'
+    "$_CURL" --compressed -sS "$_ANIME_URL/$1" \
+    | grep getJSON \
+    | sed -E 's/.*id=//' \
+    | awk -F '&' '{print $1}'
 }
 
 get_episode_list() {
@@ -173,14 +173,14 @@ get_episode_link() {
 get_playlist() {
     # $1: episode link
     local s l
-    s=$("$_CURL" --compressed -sS -H "Referer: $_REFERER_URL" "$1" |
-        grep '<script>' |
-        sed -E 's/<script>//')
+    s=$("$_CURL" --compressed -sS -H "Referer: $_REFERER_URL" "$1" \
+        | grep '<script>' \
+        | sed -E 's/<script>//')
 
-    l=$("$_NODE" -e "$s" 2>&1 |
-        grep 'source=' |
-        sed -E "s/.m3u8';.*/.m3u8/" |
-        sed -E "s/.*const source='//")
+    l=$("$_NODE" -e "$s" 2>&1 \
+        | grep 'source=' \
+        | sed -E "s/.m3u8';.*/.m3u8/" \
+        | sed -E "s/.*const source='//")
 
     echo "$l"
 }
@@ -201,9 +201,9 @@ download_episodes() {
     el=()
     for i in "${origel[@]}"; do
         if [[ "$i" == *"*"* ]]; then
-            i="1-$("$_JQ" -r '.data[].episode' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" |
-                sort -nu |
-                tail -1)"
+            i="1-$("$_JQ" -r '.data[].episode' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" \
+                | sort -nu \
+                | tail -1)"
         fi
 
         if [[ "$i" == *"-"* ]]; then
@@ -270,14 +270,14 @@ main() {
     fi
 
     [[ "$_ANIME_SLUG" == "" ]] && print_error "Anime slug not found!"
-    _ANIME_NAME=$(sort -u "$_ANIME_LIST_FILE" |
-        grep "$_ANIME_SLUG" |
-        awk -F '] ' '{print $2}' |
-        sed -E 's/\//_/g' |
-        sed -E 's/\"/_/g' |
-        sed -E 's/\?/_/g' |
-        sed -E 's/\*/_/g' |
-        sed -E 's/\:/_/g')
+    _ANIME_NAME=$(sort -u "$_ANIME_LIST_FILE" \
+        | grep "$_ANIME_SLUG" \
+        | awk -F '] ' '{print $2}' \
+        | sed -E 's/\//_/g' \
+        | sed -E 's/\"/_/g' \
+        | sed -E 's/\?/_/g' \
+        | sed -E 's/\*/_/g' \
+        | sed -E 's/\:/_/g')
 
     [[ "$_ANIME_NAME" == "" ]] && (
         print_warn "Anime name not found! Try again."
