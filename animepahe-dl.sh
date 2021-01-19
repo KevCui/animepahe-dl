@@ -15,6 +15,7 @@
 #/                           all episodes using "*"
 #/   -l                      optional, show m3u8 playlist link without downloading videos
 #/   -r                      optional, specify resolution: "1080", "720"...
+#/   -t                      to download episodes faster, specify number of threads
 #/                           by default, the highest resolution is selected
 #/   -d                      enable debug mode
 #/   -h | --help             display this help message
@@ -32,6 +33,10 @@ set_var() {
     _FZF="$(command -v fzf)" || command_not_found "fzf"
     _NODE="$(command -v node)" || command_not_found "node"
     _FFMPEG="$(command -v ffmpeg)" || command_not_found "ffmpeg"
+    if [[ ! -z ${_PARALLEL_JOBS:-} ]]; then
+       _XXD="$(command -v xxd)" || command_not_found "xxd"
+       _OPENSSL="$(command -v openssl)" || command_not_found "openssl"
+    fi
 
     _HOST="https://animepahe.com"
     _ANIME_URL="$_HOST/anime"
@@ -45,7 +50,7 @@ set_var() {
 
 set_args() {
     expr "$*" : ".*--help" > /dev/null && usage
-    while getopts ":hlda:s:e:r:" opt; do
+    while getopts ":hlda:s:e:r:t:" opt; do
         case $opt in
             a)
                 _INPUT_ANIME_NAME="$OPTARG"
@@ -61,6 +66,12 @@ set_args() {
                 ;;
             r)
                 _ANIME_RESOLUTION="$OPTARG"
+                ;;
+            t)
+                _PARALLEL_JOBS="$OPTARG"
+                [[ ${_PARALLEL_JOBS} -lt 0 ]] && {
+                    print_error "-t switch only takes a positive integer as argument."
+                }
                 ;;
             d)
                 _DEBUG_MODE=true
@@ -228,8 +239,8 @@ download_episodes() {
 
 download_episode() {
     # $1: episode number
-    local l pl erropt=''
-    l=$(get_episode_link "$1")
+    local num="$1" l pl erropt=''
+    l=$(get_episode_link "$num")
     [[ "$l" != *"/"* ]] && print_error "Wrong download link or episode not found!"
 
     pl=$(get_playlist "$l")
@@ -238,7 +249,53 @@ download_episode() {
     if [[ -z ${_LIST_LINK_ONLY:-} ]]; then
         print_info "Downloading Episode $1..."
         [[ -z "${_DEBUG_MODE:-}" ]] && erropt="-v error"
-        "$_FFMPEG" -headers "Referer: $_REFERER_URL" -i "$pl" -c copy $erropt -y "$_SCRIPT_PATH/${_ANIME_NAME}/${1}.mp4"
+        if [[ ! -z ${_PARALLEL_JOBS:-} ]]; then
+            local m3u8_file key_file_url key segments_url total_segments parallel_jobs
+            # download m3u8 files
+            m3u8_file="$("${_CURL}" -s -H "Referer: $_REFERER_URL" "$pl" 2>&1)" || print_error "${m3u8_file}"
+
+            # grab key from m3u8
+            key_file_url="$(grep "#EXT-X-KEY:METHOD" <<< "${m3u8_file}" | sed -e "s/^.*http/http/" -e "s/\"$//")"
+            "${_CURL}" -s -H "Referer: $_REFERER_URL" "${key_file_url}" -o "${num}.key_file" || return 1
+            key="$("${_XXD}" -p "${num}.key_file")"
+            rm -f "${num}.key_file"
+
+            # grab segments
+            mapfile -t segments_url <<< "$(grep '^http' <<< "${m3u8_file}")" && total_segments="${#segments_url}"
+
+            mkdir -p "$_SCRIPT_PATH/${_ANIME_NAME}/${num}"
+            cd "$_SCRIPT_PATH/${_ANIME_NAME}/${num}/" || exit 1
+
+            # setup for xargs
+            parallel_jobs="$((total_segments < _PARALLEL_JOBS ? total_segments : _PARALLEL_JOBS))"
+            export _CURL _XXD _OPENSSL _REFERER_URL _SCRIPT_PATH _ANIME_NAME num key
+
+            # download segments parallely
+            printf "%s\n" "${segments_url[@]}" | xargs -n 1 -I {} -P "${parallel_jobs}" sh -c '
+            url="{}" file="${url##*\/}.encrypted"
+            "${_CURL}" -s -H "Referer: $_REFERER_URL" "${url}" -o "${file}"
+            ' || return 1
+
+            # decrypt segments parallely
+            printf "%b\n" *.ts.encrypted | xargs -n 1 -I {} -P "${parallel_jobs}" sh -c '
+            infile="{}" outfile="${infile%%.encrypted}"
+            "${_OPENSSL}" aes-128-cbc -d -K "${key}" -iv 0 -nosalt -in "${infile}" -out "${outfile}"
+            ' &> /dev/null || return 1
+
+            cd "${_SCRIPT_PATH:?}/${_ANIME_NAME:?}/" || exit 1
+
+            # generate a list with file name format as ffmpeg concat requires
+            for segment in "${num}/"*.ts ; do
+                printf "%s\n" "file ${segment}"
+            done >| "${num}.ffmpeg_file_list"
+
+            # concat all the decrypted ts files
+            "$_FFMPEG" $erropt -f concat -i "${num}.ffmpeg_file_list" -c copy -bsf:a aac_adtstoasc -y "${num}.mp4" &&
+                rm -rf "${_SCRIPT_PATH:?}/${_ANIME_NAME:?}/${num:?}"
+                # remove the ${num} folder only if ffmpeg command ran successfully
+        else
+            "$_FFMPEG" -headers "Referer: $_REFERER_URL" -i "$pl" -c copy $erropt -y "$_SCRIPT_PATH/${_ANIME_NAME}/${num}.mp4"
+        fi
     else
         echo "$pl"
     fi
