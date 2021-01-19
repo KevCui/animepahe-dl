@@ -291,8 +291,9 @@ download_episode() {
 
             # concat all the decrypted ts files
             "$_FFMPEG" $erropt -f concat -i "${num}.ffmpeg_file_list" -c copy -bsf:a aac_adtstoasc -y "${num}.mp4" &&
-                rm -rf "${_SCRIPT_PATH:?}/${_ANIME_NAME:?}/${num:?}"
-                # remove the ${num} folder only if ffmpeg command ran successfully
+                rm -rf "${_SCRIPT_PATH:?}/${_ANIME_NAME:?}/${num:?}" && 
+                rm -rf "${_SCRIPT_PATH:?}/${_ANIME_NAME:?}/${num:?}.ffmpeg_file_list"
+                # remove the ${num} folder and the file list only if ffmpeg command ran successfully
         else
             "$_FFMPEG" -headers "Referer: $_REFERER_URL" -i "$pl" -c copy $erropt -y "$_SCRIPT_PATH/${_ANIME_NAME}/${num}.mp4"
         fi
