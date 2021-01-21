@@ -3,7 +3,7 @@
 # Download anime from animepahe in terminal
 #
 #/ Usage:
-#/   ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-l] [-r <resolution>] [-d]
+#/   ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-l] [-r <resolution>] [-t <num>] [-d]
 #/
 #/ Options:
 #/   -a <name>               anime name
@@ -15,7 +15,7 @@
 #/                           all episodes using "*"
 #/   -l                      optional, show m3u8 playlist link without downloading videos
 #/   -r                      optional, specify resolution: "1080", "720"...
-#/   -t                      to download episodes faster, specify number of threads
+#/   -t <num>                optional, specify a positive integer as num of threads
 #/                           by default, the highest resolution is selected
 #/   -d                      enable debug mode
 #/   -h | --help             display this help message
@@ -33,7 +33,7 @@ set_var() {
     _FZF="$(command -v fzf)" || command_not_found "fzf"
     _NODE="$(command -v node)" || command_not_found "node"
     _FFMPEG="$(command -v ffmpeg)" || command_not_found "ffmpeg"
-    if [[ ! -z ${_PARALLEL_JOBS:-} ]]; then
+    if [[ -n ${_PARALLEL_JOBS:-} ]]; then
        _XXD="$(command -v xxd)" || command_not_found "xxd"
        _OPENSSL="$(command -v openssl)" || command_not_found "openssl"
     fi
@@ -69,9 +69,12 @@ set_args() {
                 ;;
             t)
                 _PARALLEL_JOBS="$OPTARG"
-                [[ ${_PARALLEL_JOBS} -lt 0 ]] && {
-                    print_error "-t switch only takes a positive integer as argument."
-                }
+                if [[ ! "$_PARALLEL_JOBS" =~ ^[0-9]+$ || "$_PARALLEL_JOBS" -eq 0 ]]; then
+                    print_error "-t <num>: Number must be a positive integer"
+                fi
+                if [[ "$_PARALLEL_JOBS" -eq 1 ]]; then
+                    _PARALLEL_JOBS=""
+                fi
                 ;;
             d)
                 _DEBUG_MODE=true
@@ -181,7 +184,7 @@ get_episode_link() {
     fi
 }
 
-get_playlist() {
+get_playlist_link() {
     # $1: episode link
     local s l
     s=$("$_CURL" --compressed -sS -H "Referer: $_REFERER_URL" "$1" \
@@ -237,63 +240,95 @@ download_episodes() {
     done
 }
 
+get_thread_number() {
+    # $1: playlist file
+    local sn
+    sn="$(grep -c "^https" "$1")"
+    if [[ "$sn" -lt "$_PARALLEL_JOBS" ]]; then
+        echo "$sn"
+    else
+        echo "$_PARALLEL_JOBS"
+    fi
+}
+
+download_file() {
+    # $1: URL link
+    # $2: output file
+    "$_CURL" --compressed -sS -H "Referer: $_REFERER_URL" "$1" -L -g -o "$2"
+}
+
+decrypt_file() {
+    # $1: input file
+    # $2: encryption key in hex
+    local of=${1%%.encrypted}
+    "$_OPENSSL" aes-128-cbc -d -K "$2" -iv 0 -in "${1}" -out "${of}" 2>/dev/null
+}
+
+download_segments() {
+    # $1: playlist file
+    # $2: output path
+    local op="$2"
+    export _CURL _REFERER_URL op
+    export -f download_file
+    xargs -n 1 -I {} -P "$(get_thread_number "$1")" \
+    sh -c 'url="{}"; file="${url##*/}.encrypted"; download_file "$url" "${op}/${file}"' < <(grep "^https" "$1")
+}
+
+generate_filelist() {
+    # $1: playlist file
+    # $2: output path
+    grep "^https" "$1" \
+    | sed -E "s/https.*\//file '${2//\//\\/}\//" \
+    | sed -E "s/$/'/" \
+    > "${2}/file.list"
+}
+
+decrypt_segments() {
+    # $1: playlist file
+    # $2: segment path
+    local kf kl k
+    kf="${2}/mon.key"
+    kl=$(grep "#EXT-X-KEY:METHOD=" "$1" | awk -F '"' '{print $2}')
+    download_file "$kl" "$kf"
+    k="$("$_XXD" -p "$kf")"
+
+    export _OPENSSL k
+    export -f decrypt_file
+    xargs -n 1 -I {} -P "$(get_thread_number "$1")" \
+    sh -c 'decrypt_file "{}" "$k"' < <(ls "${2}/"*.ts.encrypted)
+}
+
 download_episode() {
     # $1: episode number
-    local num="$1" l pl erropt=''
+    local num="$1" l pl erropt='' v
+    v="$_SCRIPT_PATH/${_ANIME_NAME}/${num}.mp4"
+
     l=$(get_episode_link "$num")
     [[ "$l" != *"/"* ]] && print_error "Wrong download link or episode not found!"
 
-    pl=$(get_playlist "$l")
+    pl=$(get_playlist_link "$l")
     [[ -z "${pl:-}" ]] && print_error "Missing video list!"
 
     if [[ -z ${_LIST_LINK_ONLY:-} ]]; then
         print_info "Downloading Episode $1..."
         [[ -z "${_DEBUG_MODE:-}" ]] && erropt="-v error"
-        if [[ ! -z ${_PARALLEL_JOBS:-} ]]; then
-            local m3u8_file key_file_url key segments_url total_segments parallel_jobs
-            # download m3u8 files
-            m3u8_file="$("${_CURL}" -s -H "Referer: $_REFERER_URL" "$pl" 2>&1)" || print_error "${m3u8_file}"
+        if [[ -n ${_PARALLEL_JOBS:-} ]]; then
+            local opath plist
+            opath="$_SCRIPT_PATH/$_ANIME_NAME/.${num}"
+            plist="${opath}/playlist.m3u8"
+            rm -rf "$opath"
+            mkdir -p "$opath"
 
-            # grab key from m3u8
-            key_file_url="$(grep "#EXT-X-KEY:METHOD" <<< "${m3u8_file}" | sed -e "s/^.*http/http/" -e "s/\"$//")"
-            "${_CURL}" -s -H "Referer: $_REFERER_URL" "${key_file_url}" -o "${num}.key_file" || return 1
-            key="$("${_XXD}" -p "${num}.key_file")"
-            rm -f "${num}.key_file"
+            download_file "$pl" "$plist"
+            print_info "Start parallel jobs with $(get_thread_number "$plist") threads"
+            download_segments "$plist" "$opath"
+            decrypt_segments "$plist" "$opath"
+            generate_filelist "$plist" "$opath"
 
-            # grab segments
-            mapfile -t segments_url <<< "$(grep '^http' <<< "${m3u8_file}")" && total_segments="${#segments_url}"
-
-            mkdir -p "$_SCRIPT_PATH/${_ANIME_NAME}/${num}"
-            cd "$_SCRIPT_PATH/${_ANIME_NAME}/${num}/" || exit 1
-
-            # setup for xargs
-            parallel_jobs="$((total_segments < _PARALLEL_JOBS ? total_segments : _PARALLEL_JOBS))"
-            export _CURL _XXD _OPENSSL _REFERER_URL _SCRIPT_PATH _ANIME_NAME num key
-
-            # download segments parallely
-            printf "%s\n" "${segments_url[@]}" | xargs -n 1 -I {} -P "${parallel_jobs}" sh -c '
-            url="{}" file="${url##*\/}.encrypted"
-            "${_CURL}" -s -H "Referer: $_REFERER_URL" "${url}" -o "${file}"
-            ' || return 1
-
-            # decrypt segments parallely
-            printf "%b\n" *.ts.encrypted | xargs -n 1 -I {} -P "${parallel_jobs}" sh -c '
-            infile="{}" outfile="${infile%%.encrypted}"
-            "${_OPENSSL}" aes-128-cbc -d -K "${key}" -iv 0 -nosalt -in "${infile}" -out "${outfile}"
-            ' &> /dev/null || return 1
-
-            cd "${_SCRIPT_PATH:?}/${_ANIME_NAME:?}/" || exit 1
-
-            # generate a sorted list with file name format as ffmpeg concat requires
-            for i in `ls "${num}/"*.ts | sort -V`; do echo "file $i"; done > "${num}.ffmpeg_file_list"
-
-            # concat all the decrypted ts files
-            "$_FFMPEG" $erropt -f concat -i "${num}.ffmpeg_file_list" -c copy -bsf:a aac_adtstoasc -y "${num}.mp4" &&
-                rm -rf "${_SCRIPT_PATH:?}/${_ANIME_NAME:?}/${num:?}" &&
-                rm -rf "${_SCRIPT_PATH:?}/${_ANIME_NAME:?}/${num:?}.ffmpeg_file_list"
-                # remove the ${num} folder and the file list only if ffmpeg command ran successfully
+            "$_FFMPEG" -f concat -safe 0 -i "${opath}/file.list" -c copy $erropt -y "$v"
+            [[ -z "${_DEBUG_MODE:-}" ]] && rm -rf "$opath"
         else
-            "$_FFMPEG" -headers "Referer: $_REFERER_URL" -i "$pl" -c copy $erropt -y "$_SCRIPT_PATH/${_ANIME_NAME}/${num}.mp4"
+            "$_FFMPEG" -headers "Referer: $_REFERER_URL" -i "$pl" -c copy $erropt -y "$v"
         fi
     else
         echo "$pl"
