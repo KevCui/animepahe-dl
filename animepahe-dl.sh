@@ -284,14 +284,12 @@ download_episode() {
 
             cd "${_SCRIPT_PATH:?}/${_ANIME_NAME:?}/" || exit 1
 
-            # generate a list with file name format as ffmpeg concat requires
-            for segment in "${num}/"*.ts ; do
-                printf "%s\n" "file ${segment}"
-            done >| "${num}.ffmpeg_file_list"
+            # generate a sorted list with file name format as ffmpeg concat requires
+            for i in `ls "${num}/"*.ts | sort -V`; do echo "file $i"; done > "${num}.ffmpeg_file_list"
 
             # concat all the decrypted ts files
             "$_FFMPEG" $erropt -f concat -i "${num}.ffmpeg_file_list" -c copy -bsf:a aac_adtstoasc -y "${num}.mp4" &&
-                rm -rf "${_SCRIPT_PATH:?}/${_ANIME_NAME:?}/${num:?}" && 
+                rm -rf "${_SCRIPT_PATH:?}/${_ANIME_NAME:?}/${num:?}" &&
                 rm -rf "${_SCRIPT_PATH:?}/${_ANIME_NAME:?}/${num:?}.ffmpeg_file_list"
                 # remove the ${num} folder and the file list only if ffmpeg command ran successfully
         else
