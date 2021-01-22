@@ -18,12 +18,14 @@
 - [fzf](https://github.com/junegunn/fzf)
 - [Node.js](https://nodejs.org/en/download/)
 - [ffmpeg](https://ffmpeg.org/download.html)
+- [openssl](https://www.openssl.org/source/): optional, needed when using `-t <num>` for faster download
+- [xxd](https://linux.die.net/man/1/xxd): optional, needed when using `-t <num>` for faster download
 
 ## How to use
 
 ```
 Usage:
-  ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-l] [-r <resolution>] [-d]
+  ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-l] [-r <resolution>] [-t <num>] [-d]
 
 Options:
   -a <name>               anime name
@@ -36,6 +38,7 @@ Options:
   -l                      optional, show m3u8 playlost link without downloading videos
   -r                      optional, specify resolution: "1080", "720"...
                           by default, the highest resolution is selected
+  -t <num>                optional, specify a positive integer as num of threads
   -d                      enable debug mode
   -h | --help             display this help message
 ```
@@ -127,6 +130,12 @@ $ ./animepahe-dl.sh -s 308f5756-6715-e404-998d-92f16b9d9858 -e '*'
 $ ./animepahe-dl.sh -a jujutsu -e 5 -r 360
 [INFO] Select resolution: 360
 [INFO] Downloading Episode 5...
+```
+
+- Enable parallel jobs to download faster:
+
+```bash
+$ ./animepahe-dl.sh -a jujutsu -e 1 -t 100
 ```
 
 - Show only m3u8 playlist link, without downloading video file:
