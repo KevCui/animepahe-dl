@@ -33,7 +33,7 @@ set_var() {
     _FZF="$(command -v fzf)" || command_not_found "fzf"
     _NODE="$(command -v node)" || command_not_found "node"
     _FFMPEG="$(command -v ffmpeg)" || command_not_found "ffmpeg"
-    if [[ -n ${_PARALLEL_JOBS:-} ]]; then
+    if [[ ${_PARALLEL_JOBS:-} -gt 1 ]]; then
        _XXD="$(command -v xxd)" || command_not_found "xxd"
        _OPENSSL="$(command -v openssl)" || command_not_found "openssl"
     fi
@@ -50,6 +50,7 @@ set_var() {
 
 set_args() {
     expr "$*" : ".*--help" > /dev/null && usage
+    _PARALLEL_JOBS=1
     while getopts ":hlda:s:e:r:t:" opt; do
         case $opt in
             a)
@@ -71,9 +72,6 @@ set_args() {
                 _PARALLEL_JOBS="$OPTARG"
                 if [[ ! "$_PARALLEL_JOBS" =~ ^[0-9]+$ || "$_PARALLEL_JOBS" -eq 0 ]]; then
                     print_error "-t <num>: Number must be a positive integer"
-                fi
-                if [[ "$_PARALLEL_JOBS" -eq 1 ]]; then
-                    _PARALLEL_JOBS=""
                 fi
                 ;;
             d)
@@ -313,7 +311,7 @@ download_episode() {
     if [[ -z ${_LIST_LINK_ONLY:-} ]]; then
         print_info "Downloading Episode $1..."
         [[ -z "${_DEBUG_MODE:-}" ]] && erropt="-v error"
-        if [[ -n ${_PARALLEL_JOBS:-} ]]; then
+        if [[ ${_PARALLEL_JOBS:-} -gt 1 ]]; then
             local opath plist
             opath="$_SCRIPT_PATH/$_ANIME_NAME/.${num}"
             plist="${opath}/playlist.m3u8"
