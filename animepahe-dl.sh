@@ -271,7 +271,7 @@ download_segments() {
     export _CURL _REFERER_URL op
     export -f download_file
     xargs -n 1 -I {} -P "$(get_thread_number "$1")" \
-    sh -c 'url="{}"; file="${url##*/}.encrypted"; download_file "$url" "${op}/${file}"' < <(grep "^https" "$1")
+        sh -c 'url="{}"; file="${url##*/}.encrypted"; download_file "$url" "${op}/${file}"' < <(grep "^https" "$1")
 }
 
 generate_filelist() {
@@ -295,7 +295,8 @@ decrypt_segments() {
     export _OPENSSL k
     export -f decrypt_file
     xargs -n 1 -I {} -P "$(get_thread_number "$1")" \
-    sh -c 'decrypt_file "{}" "$k"' < <(ls "${2}/"*.ts.encrypted)
+        sh -c 'decrypt_file "{}" "$k"' < <(ls "${2}/"*.ts.encrypted \
+        | sed -E 's/ /\\ /g')
 }
 
 download_episode() {
