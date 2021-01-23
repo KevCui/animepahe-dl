@@ -1,4 +1,4 @@
-# animepahhe-dl
+# animepahe-dl
 
 > Download anime videos from [animepahe](https://animepahe.com/) in terminal
 
