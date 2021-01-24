@@ -252,7 +252,12 @@ get_thread_number() {
 download_file() {
     # $1: URL link
     # $2: output file
-    "$_CURL" --compressed -sS -H "Referer: $_REFERER_URL" "$1" -L -g -o "$2"
+    local s
+    s=$("$_CURL" --compressed -sS -H "Referer: $_REFERER_URL" -C - "$1" -L -g -o "$2" --connect-timeout 5 || echo "$?")
+    if [[ "$s" -ne 0 ]]; then
+        print_warn "Download was aborted. Retry..."
+        download_file "$1" "$2" true
+    fi
 }
 
 decrypt_file() {
@@ -267,7 +272,7 @@ download_segments() {
     # $2: output path
     local op="$2"
     export _CURL _REFERER_URL op
-    export -f download_file
+    export -f download_file print_warn
     xargs -n 1 -I {} -P "$(get_thread_number "$1")" \
         bash -c 'url="{}"; file="${url##*/}.encrypted"; download_file "$url" "${op}/${file}"' < <(grep "^https" "$1")
 }
