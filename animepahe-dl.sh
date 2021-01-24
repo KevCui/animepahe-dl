@@ -212,9 +212,11 @@ download_episodes() {
     el=()
     for i in "${origel[@]}"; do
         if [[ "$i" == *"*"* ]]; then
-            i="1-$("$_JQ" -r '.data[].episode' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" \
-                | sort -nu \
-                | tail -1)"
+            local eps fst lst
+            eps="$("$_JQ" -r '.data[].episode' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" | sort -nu)"
+            fst="$(head -1 <<< "$eps")"
+            lst="$(tail -1 <<< "$eps")"
+            i="${fst}-${lst}"
         fi
 
         if [[ "$i" == *"-"* ]]; then
