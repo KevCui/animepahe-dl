@@ -5,3 +5,4 @@ anime.list
 node_modules
 package-lock.json
 .editorconfig
+.*
