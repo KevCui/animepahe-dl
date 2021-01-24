@@ -305,6 +305,13 @@ decrypt_segments() {
         | sed -E 's/ /\\ /g')
 }
 
+
+ffmpeg_normal_parsing() {
+    # $1: m3u8 playlist
+    # $2: output video file
+    "$_FFMPEG" -headers "Referer: $_REFERER_URL" -i "$1" -c copy  -y "$2"
+}
+
 download_episode() {
     # $1: episode number
     local num="$1" l pl erropt='' v
@@ -335,7 +342,7 @@ download_episode() {
             "$_FFMPEG" -f concat -safe 0 -i "${opath}/file.list" -c copy $erropt -y "$v"
             [[ -z "${_DEBUG_MODE:-}" ]] && rm -rf "$opath"
         else
-            "$_FFMPEG" -headers "Referer: $_REFERER_URL" -i "$pl" -c copy $erropt -y "$v"
+            ffmpeg_normal_parsing "$pl" "$v"
         fi
     else
         echo "$pl"
