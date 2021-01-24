@@ -283,9 +283,9 @@ generate_filelist() {
     # $1: playlist file
     # $2: output path
     grep "^https" "$1" \
-    | sed -E "s/https.*\//file '${2//\//\\/}\//" \
-    | sed -E "s/$/'/" \
-    > "${2}/file.list"
+        | sed -E "s/https.*\//file '${2//\//\\/}\//" \
+        | sed -E "s/$/'/" \
+        > "${2}/file.list"
 }
 
 decrypt_segments() {
@@ -295,7 +295,7 @@ decrypt_segments() {
     kf="${2}/mon.key"
     kl=$(grep "#EXT-X-KEY:METHOD=" "$1" | awk -F '"' '{print $2}')
     download_file "$kl" "$kf"
-    k="$(od -A n -t x1 < "$kf" | tr -d ' \n')"
+    k="$(od -A n -t x1 "$kf" | tr -d ' \n')"
 
     export _OPENSSL k
     export -f decrypt_file
