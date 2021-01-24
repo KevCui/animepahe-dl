@@ -19,7 +19,6 @@
 - [Node.js](https://nodejs.org/en/download/)
 - [ffmpeg](https://ffmpeg.org/download.html)
 - [openssl](https://www.openssl.org/source/): optional, needed when using `-t <num>` for faster download
-- [xxd](https://linux.die.net/man/1/xxd): optional, needed when using `-t <num>` for faster download
 
 ## How to use
 

@@ -34,7 +34,6 @@ set_var() {
     _NODE="$(command -v node)" || command_not_found "node"
     _FFMPEG="$(command -v ffmpeg)" || command_not_found "ffmpeg"
     if [[ ${_PARALLEL_JOBS:-} -gt 1 ]]; then
-       _XXD="$(command -v xxd)" || command_not_found "xxd"
        _OPENSSL="$(command -v openssl)" || command_not_found "openssl"
     fi
 
@@ -296,7 +295,7 @@ decrypt_segments() {
     kf="${2}/mon.key"
     kl=$(grep "#EXT-X-KEY:METHOD=" "$1" | awk -F '"' '{print $2}')
     download_file "$kl" "$kf"
-    k="$("$_XXD" -p "$kf")"
+    k="$(od -A n -t x1 < "$kf" | tr -d ' \n')"
 
     export _OPENSSL k
     export -f decrypt_file
