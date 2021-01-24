@@ -253,10 +253,13 @@ download_file() {
     # $1: URL link
     # $2: output file
     local s
-    s=$("$_CURL" --compressed -sS -H "Referer: $_REFERER_URL" -C - "$1" -L -g -o "$2" --connect-timeout 5 || echo "$?")
+    s=$("$_CURL" -sS -H "Referer: $_REFERER_URL" -C - "$1" -L -g -o "$2" \
+        --connect-timeout 5 \
+        --compressed \
+        || echo "$?")
     if [[ "$s" -ne 0 ]]; then
         print_warn "Download was aborted. Retry..."
-        download_file "$1" "$2" true
+        download_file "$1" "$2"
     fi
 }
 
