@@ -3,7 +3,7 @@
 # Download anime from animepahe in terminal
 #
 #/ Usage:
-#/   ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-l] [-r <resolution>] [-t <num>] [-d]
+#/   ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-r <resolution>] [-t <num>] [-l] [-d]
 #/
 #/ Options:
 #/   -a <name>               anime name
@@ -13,10 +13,10 @@
 #/                           multiple episode numbers seperated by ","
 #/                           episode range using "-"
 #/                           all episodes using "*"
-#/   -l                      optional, show m3u8 playlist link without downloading videos
-#/   -r                      optional, specify resolution: "1080", "720"...
+#/   -r <resolution>         optional, specify resolution: "1080", "720"...
 #/   -t <num>                optional, specify a positive integer as num of threads
 #/                           by default, the highest resolution is selected
+#/   -l                      optional, show m3u8 playlist link without downloading videos
 #/   -d                      enable debug mode
 #/   -h | --help             display this help message
 
