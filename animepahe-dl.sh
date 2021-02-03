@@ -169,7 +169,7 @@ get_episode_link() {
     if [[ -n "${_ANIME_RESOLUTION:-}" ]]; then
         print_info "Select resolution: $_ANIME_RESOLUTION"
         r="$("$_JQ" -r '.data[][$resolution] | select(. != null) | .kwik' \
-            --arg resolution "$_ANIME_RESOLUTION" <<< "$d")"
+            --arg resolution "$_ANIME_RESOLUTION" <<< "$d" | head -1)"
     fi
 
     if [[ -z "$r" ]]; then
