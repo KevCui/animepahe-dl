@@ -186,6 +186,7 @@ get_playlist_link() {
     local s l
     s=$("$_CURL" --compressed -sS -H "Referer: $_REFERER_URL" "$1" \
         | grep '<script>' \
+        | grep 'eval(function' \
         | sed -E 's/<script>//')
 
     l=$("$_NODE" -e "$s" 2>&1 \
