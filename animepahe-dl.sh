@@ -286,7 +286,7 @@ generate_filelist() {
     # $1: playlist file
     # $2: output path
     grep "^https" "$1" \
-        | sed -E "s/https.*\//file 'file:${2//\//\\/}\//" \
+        | sed -E "s/https.*\//file '${2//\//\\/}\//" \
         | sed -E "s/$/'/" \
         > "${2}/file.list"
 }
