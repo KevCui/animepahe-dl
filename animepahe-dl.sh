@@ -284,11 +284,11 @@ download_segments() {
 
 generate_filelist() {
     # $1: playlist file
-    # $2: output path
+    # $2: output file
     grep "^https" "$1" \
-        | sed -E "s/https.*\//file '${2//\//\\/}\//" \
+        | sed -E "s/https.*\//file '/" \
         | sed -E "s/$/'/" \
-        > "${2}/file.list"
+        > "$2"
 }
 
 decrypt_segments() {
@@ -322,7 +322,9 @@ download_episode() {
         print_info "Downloading Episode $1..."
         [[ -z "${_DEBUG_MODE:-}" ]] && erropt="-v error"
         if [[ ${_PARALLEL_JOBS:-} -gt 1 ]]; then
-            local opath plist
+            local opath plist cpath fname
+            fname="file.list"
+            cpath="$(pwd)"
             opath="$_SCRIPT_PATH/$_ANIME_NAME/.${num}"
             plist="${opath}/playlist.m3u8"
             rm -rf "$opath"
@@ -332,9 +334,11 @@ download_episode() {
             print_info "Start parallel jobs with $(get_thread_number "$plist") threads"
             download_segments "$plist" "$opath"
             decrypt_segments "$plist" "$opath"
-            generate_filelist "$plist" "$opath"
+            generate_filelist "$plist" "${opath}/$fname"
 
-            "$_FFMPEG" -f concat -safe 0 -i "${opath}/file.list" -c copy $erropt -y "$v"
+            cd "$opath" || print_error "Cannot change directory to $opath"
+            "$_FFMPEG" -f concat -safe 0 -i "$fname" -c copy $erropt -y "$v"
+            cd "$cpath" || print_error "Cannot change directory to $cpath"
             [[ -z "${_DEBUG_MODE:-}" ]] && rm -rf "$opath"
         else
             "$_FFMPEG" -headers "Referer: $_REFERER_URL" -i "$pl" -c copy $erropt -y "$v"
