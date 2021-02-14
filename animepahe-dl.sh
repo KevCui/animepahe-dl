@@ -129,7 +129,7 @@ search_anime_by_name() {
 
 get_anime_id() {
     # $1: anime slug
-    "$_CURL" --compressed -sS "$_ANIME_URL/$1" \
+    "$_CURL" --compressed -sS -L "$_ANIME_URL/$1" \
     | grep getJSON \
     | sed -E 's/.*id=//' \
     | awk -F '&' '{print $1}'
