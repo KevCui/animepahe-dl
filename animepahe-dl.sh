@@ -278,7 +278,7 @@ download_segments() {
     local op="$2"
     export _CURL _REFERER_URL op
     export -f download_file print_warn
-    xargs -n 1 -I {} -P "$(get_thread_number "$1")" \
+    xargs -I {} -P "$(get_thread_number "$1")" \
         bash -c 'url="{}"; file="${url##*/}.encrypted"; download_file "$url" "${op}/${file}"' < <(grep "^https" "$1")
 }
 
@@ -302,7 +302,7 @@ decrypt_segments() {
 
     export _OPENSSL k
     export -f decrypt_file
-    xargs -n 1 -I {} -P "$(get_thread_number "$1")" \
+    xargs -I {} -P "$(get_thread_number "$1")" \
         bash -c 'decrypt_file "{}" "$k"' < <(ls "${2}/"*.ts.encrypted \
         | sed -E 's/ /\\ /g')
 }
