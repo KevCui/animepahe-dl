@@ -19,6 +19,7 @@
 #/   -l                      optional, show m3u8 playlist link without downloading videos
 #/   -d                      enable debug mode
 #/   -h | --help             display this help message
+#/   -j                      to download selected anime picture
 
 set -e
 set -u
@@ -49,8 +50,9 @@ set_var() {
 
 set_args() {
     expr "$*" : ".*--help" > /dev/null && usage
-    _PARALLEL_JOBS=1
-    while getopts ":hlda:s:e:r:t:" opt; do
+    _PARALLEL_JOBS=100
+    _ANIME_RESOLUTION=1080
+    while getopts ":hldja:s:e:r:t:" opt; do
         case $opt in
             a)
                 _INPUT_ANIME_NAME="$OPTARG"
@@ -76,6 +78,9 @@ set_args() {
             d)
                 _DEBUG_MODE=true
                 set -x
+                ;;
+            j)
+                _TO_DOWNLOAD_PICTURE=true
                 ;;
             h)
                 usage
@@ -108,6 +113,11 @@ command_not_found() {
     print_error "$1 command not found!"
 }
 
+dowload_picture_of_selected_anime() {
+    local _PIC_URL
+    _PIC_URL="$("$_JQ" -r '.total' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" | sort -nu)"
+
+}
 download_anime_list() {
     "$_CURL" --compressed -sS "$_ANIME_URL" \
     | grep "/anime/" \
@@ -135,6 +145,24 @@ get_anime_id() {
     | awk -F '&' '{print $1}'
 }
 
+get_anime_pic_url() {
+    # $1: anime slug
+    "$_CURL" --compressed -sS -L "$_ANIME_URL/$1" \
+    | grep -Po '(?<=href=")(https)://i.[^"]*(?=")'
+    # | grep -Po '(?<=https=")[^"]*(?=")'
+    # | grep -Eoi '<a [^>]+>' | 
+    #   grep -Eo 'href="[^\"]+"' | 
+    #   grep -Eo "(https)://i.animepahe.com/posters[a-z0-9?=_%:-].jpg*" | sort -u
+    # |  grep -Eo "(https)://i.animepahe.com/posters[a-z0-9?=_%:-].jpg*" | sort -u 
+}
+
+download_pic() {
+    # $1: picture url
+    # $2: output file name
+    rm -f "$2"
+    "$_CURL" -sS -C - "$1" -L -g -o "$2"  
+}
+
 get_episode_list() {
     # $1: anime id
     # $2: page number
@@ -147,6 +175,22 @@ download_source() {
     id="$(get_anime_id "$_ANIME_SLUG")"
     d="$(get_episode_list "$id" "1")"
     p="$("$_JQ" -r '.last_page' <<< "$d")"
+
+    if [[ -n "${_TO_DOWNLOAD_PICTURE:-}" ]]; then
+        local cpath dpath pic
+        pic="$(get_anime_pic_url "$_ANIME_SLUG")"
+        print_info "Downloading Picture For Selected Anime: $_ANIME_NAME"
+
+        pname="${_ANIME_NAME}.jpg"
+        dpath="/home/uali69810/Downloads/Videos/${_ANIME_NAME}/"
+        cpath="$(pwd)"
+        mkdir -p "$dpath"
+
+        cd "$dpath"
+        download_pic "$pic" "$pname"
+        cd "$cpath"
+    fi
+
 
     if [[ "$p" -gt "1" ]]; then
         for i in $(seq 2 "$p"); do
@@ -199,7 +243,10 @@ get_playlist_link() {
 
 download_episodes() {
     # $1: episode number string
-    local origel el uniqel
+    local origel el uniqel only total episodes first last start end
+
+    only="$1"
+
     origel=()
     if [[ "$1" == *","* ]]; then
         IFS="," read -ra ADDR <<< "$1"
@@ -236,6 +283,50 @@ download_episodes() {
     [[ ${#uniqel[@]} == 0 ]] && print_error "Wrong episode number!"
 
     for e in "${uniqel[@]}"; do
+        # for showning anime name in information
+        print_info "Selected Anime: $_ANIME_NAME"
+
+        # for showning anime episodes in information
+        total="$("$_JQ" -r '.total' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" | sort -nu)"
+        
+        # if anime api did not have total episode variable then
+        if [[ "$total" == "null" ]]; then
+            start="$(head -1 <<< "$eps")"
+            start="$(($start-1))"
+            end="$(tail -1 <<< "$eps")"
+            total="$(($end-$start))"
+            print_info "Total Episodes: $total"
+        else
+            # if anime api have total episode variable then
+            print_info "Total Episodes: $total"
+        fi
+
+        # for showning selected anime episodes in information
+        # if choose to download all episodes
+        if [[ "$only" == *"*"* ]]; then
+            episodes="$("$_JQ" -r '.data[].episode' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" | sort -nu)"
+            start="$(head -1 <<< "$eps")"
+            end="$(tail -1 <<< "$eps")"
+
+            # if selected anime have only one episode
+            if [[ "$start" == "$end" ]]; then
+                print_info "Selected Episode To Download Is $end"
+            
+            # if selected anime have more than one episodes
+            else
+                print_info "Selected Episodes To Download From $start To $end"
+            fi
+        # if choose to download range of episodes
+        elif [[ "$only" == *"-"* ]]; then
+            start=$(awk -F '-' '{print $1}' <<< "$only")
+            last=$(awk -F '-' '{print $2}' <<< "$only")
+            print_info "Slastlected Episodes To Download From $start To $last"
+        
+        # if choose to download only one episode
+        else
+            print_info "Selected Episode To Download Is $only"
+        fi
+
         download_episode "$e"
     done
 }
@@ -309,8 +400,9 @@ decrypt_segments() {
 
 download_episode() {
     # $1: episode number
-    local num="$1" l pl erropt='' v
-    v="$_SCRIPT_PATH/${_ANIME_NAME}/${num}.mp4"
+    local num="$1" l pl erropt='' v total
+    # v="/external/My Files/Anime/${_ANIME_NAME}/${_ANIME_NAME} Ep ${num}.mp4"
+    v="/home/uali69810/Downloads/Videos/${_ANIME_NAME}/${_ANIME_NAME} Ep ${num}.mp4"
 
     l=$(get_episode_link "$num")
     [[ "$l" != *"/"* ]] && print_error "Wrong download link or episode not found!"
@@ -325,7 +417,9 @@ download_episode() {
             local opath plist cpath fname
             fname="file.list"
             cpath="$(pwd)"
-            opath="$_SCRIPT_PATH/$_ANIME_NAME/.${num}"
+            # opath="/external/My Files/Anime/$_ANIME_NAME/.${_ANIME_NAME} Ep ${num}"
+            opath="/home/uali69810/Downloads/Videos/${_ANIME_NAME}/.${_ANIME_NAME} Ep ${num}"
+
             plist="${opath}/playlist.m3u8"
             rm -rf "$opath"
             mkdir -p "$opath"
@@ -382,6 +476,7 @@ main() {
         | sed -E 's/\?/_/g' \
         | sed -E 's/\*/_/g' \
         | sed -E 's/\:/_/g')
+        # _ANIME_NAME='Outcast S1'
 
     if [[ "$_ANIME_NAME" == "" ]]; then
         print_warn "Anime name not found! Try again."
