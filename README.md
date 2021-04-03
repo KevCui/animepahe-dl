@@ -40,6 +40,7 @@ Options:
   -l                      optional, show m3u8 playlist link without downloading videos
   -d                      enable debug mode
   -h | --help             display this help message
+  -j                      to download selected anime picture
 ```
 
 ### Example
@@ -135,6 +136,12 @@ $ ./animepahe-dl.sh -a jujutsu -e 5 -r 360
 
 ```bash
 $ ./animepahe-dl.sh -a jujutsu -e 1 -t 100
+```
+
+- Enable picture downloading of selected anime:
+
+```bash
+$ ./animepahe-dl.sh -a jujutsu -e 1 -p
 ```
 
 - Show only m3u8 playlist link, without downloading video file:

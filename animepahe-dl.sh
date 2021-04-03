@@ -50,8 +50,7 @@ set_var() {
 
 set_args() {
     expr "$*" : ".*--help" > /dev/null && usage
-    _PARALLEL_JOBS=100
-    _ANIME_RESOLUTION=1080
+    _PARALLEL_JOBS=1
     while getopts ":hldja:s:e:r:t:" opt; do
         case $opt in
             a)
@@ -113,11 +112,6 @@ command_not_found() {
     print_error "$1 command not found!"
 }
 
-dowload_picture_of_selected_anime() {
-    local _PIC_URL
-    _PIC_URL="$("$_JQ" -r '.total' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" | sort -nu)"
-
-}
 download_anime_list() {
     "$_CURL" --compressed -sS "$_ANIME_URL" \
     | grep "/anime/" \
@@ -149,11 +143,6 @@ get_anime_pic_url() {
     # $1: anime slug
     "$_CURL" --compressed -sS -L "$_ANIME_URL/$1" \
     | grep -Po '(?<=href=")(https)://i.[^"]*(?=")'
-    # | grep -Po '(?<=https=")[^"]*(?=")'
-    # | grep -Eoi '<a [^>]+>' | 
-    #   grep -Eo 'href="[^\"]+"' | 
-    #   grep -Eo "(https)://i.animepahe.com/posters[a-z0-9?=_%:-].jpg*" | sort -u
-    # |  grep -Eo "(https)://i.animepahe.com/posters[a-z0-9?=_%:-].jpg*" | sort -u 
 }
 
 download_pic() {
@@ -182,9 +171,8 @@ download_source() {
         print_info "Downloading Picture For Selected Anime: $_ANIME_NAME"
 
         pname="${_ANIME_NAME}.jpg"
-        dpath="/home/uali69810/Downloads/Videos/${_ANIME_NAME}/"
+        dpath="$_SCRIPT_PATH/${_ANIME_NAME}/"
         cpath="$(pwd)"
-        mkdir -p "$dpath"
 
         cd "$dpath"
         download_pic "$pic" "$pname"
@@ -245,6 +233,7 @@ download_episodes() {
     # $1: episode number string
     local origel el uniqel only total episodes first last start end
 
+    # for saving the episode number string for information about how many episode user want to download
     only="$1"
 
     origel=()
@@ -301,7 +290,7 @@ download_episodes() {
             print_info "Total Episodes: $total"
         fi
 
-        # for showning selected anime episodes in information
+        # for showning selected anime episodes
         # if choose to download all episodes
         if [[ "$only" == *"*"* ]]; then
             episodes="$("$_JQ" -r '.data[].episode' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" | sort -nu)"
@@ -310,7 +299,7 @@ download_episodes() {
 
             # if selected anime have only one episode
             if [[ "$start" == "$end" ]]; then
-                print_info "Selected Episode To Download Is $end"
+                print_info "Selected Episode To Download Is $start"
             
             # if selected anime have more than one episodes
             else
@@ -320,7 +309,7 @@ download_episodes() {
         elif [[ "$only" == *"-"* ]]; then
             start=$(awk -F '-' '{print $1}' <<< "$only")
             last=$(awk -F '-' '{print $2}' <<< "$only")
-            print_info "Slastlected Episodes To Download From $start To $last"
+            print_info "Selected Episodes To Download From $start To $last"
         
         # if choose to download only one episode
         else
@@ -401,8 +390,7 @@ decrypt_segments() {
 download_episode() {
     # $1: episode number
     local num="$1" l pl erropt='' v total
-    # v="/external/My Files/Anime/${_ANIME_NAME}/${_ANIME_NAME} Ep ${num}.mp4"
-    v="/home/uali69810/Downloads/Videos/${_ANIME_NAME}/${_ANIME_NAME} Ep ${num}.mp4"
+    v="$_SCRIPT_PATH/${_ANIME_NAME}/${num}.mp4"
 
     l=$(get_episode_link "$num")
     [[ "$l" != *"/"* ]] && print_error "Wrong download link or episode not found!"
@@ -417,8 +405,7 @@ download_episode() {
             local opath plist cpath fname
             fname="file.list"
             cpath="$(pwd)"
-            # opath="/external/My Files/Anime/$_ANIME_NAME/.${_ANIME_NAME} Ep ${num}"
-            opath="/home/uali69810/Downloads/Videos/${_ANIME_NAME}/.${_ANIME_NAME} Ep ${num}"
+            opath="$_SCRIPT_PATH/$_ANIME_NAME/.${num}"
 
             plist="${opath}/playlist.m3u8"
             rm -rf "$opath"
@@ -476,7 +463,6 @@ main() {
         | sed -E 's/\?/_/g' \
         | sed -E 's/\*/_/g' \
         | sed -E 's/\:/_/g')
-        # _ANIME_NAME='Outcast S1'
 
     if [[ "$_ANIME_NAME" == "" ]]; then
         print_warn "Anime name not found! Try again."
