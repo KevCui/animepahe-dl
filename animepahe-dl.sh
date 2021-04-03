@@ -389,7 +389,7 @@ decrypt_segments() {
 
 download_episode() {
     # $1: episode number
-    local num="$1" l pl erropt='' v total
+    local num="$1" l pl erropt='' v
     v="$_SCRIPT_PATH/${_ANIME_NAME}/${num}.mp4"
 
     l=$(get_episode_link "$num")
