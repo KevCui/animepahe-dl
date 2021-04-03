@@ -406,7 +406,6 @@ download_episode() {
             fname="file.list"
             cpath="$(pwd)"
             opath="$_SCRIPT_PATH/$_ANIME_NAME/.${num}"
-
             plist="${opath}/playlist.m3u8"
             rm -rf "$opath"
             mkdir -p "$opath"
