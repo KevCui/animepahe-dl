@@ -231,10 +231,25 @@ get_playlist_link() {
 
 download_episodes() {
     # $1: episode number string
-    local origel el uniqel only total episodes first last start end
+    local origel el uniqel total start end
 
-    # for saving the episode number string for information about how many episode user want to download
-    only="$1"
+    # for showning anime name in information
+    print_info "Selected Anime: $_ANIME_NAME"
+
+    # for showning anime episodes in information
+    total="$("$_JQ" -r '.total' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" | sort -nu)"
+        
+    # if anime api did not have total episode variable then
+    if [[ "$total" == "null" ]]; then
+        start="$(head -1 <<< "$eps")"
+        start="$(($start-1))"
+        end="$(tail -1 <<< "$eps")"
+        total="$(($end-$start))"
+        print_info "Total Episodes: $total"
+    else
+        # if anime api have total episode variable then
+        print_info "Total Episodes: $total"
+    fi
 
     origel=()
     if [[ "$1" == *","* ]]; then
@@ -253,16 +268,33 @@ download_episodes() {
             eps="$("$_JQ" -r '.data[].episode' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" | sort -nu)"
             fst="$(head -1 <<< "$eps")"
             lst="$(tail -1 <<< "$eps")"
+
+            # for showning selected anime episodes
+            # if selected anime have only one episode
+            if [[ "$fst" == "$lst" ]]; then
+                print_info "Selected Episode To Download Is $fst"
+            
+            # if selected anime have more than one episodes
+            else
+                print_info "Selected Episodes To Download From $fst To $lst"
+            fi
+
             i="${fst}-${lst}"
         fi
 
         if [[ "$i" == *"-"* ]]; then
             s=$(awk -F '-' '{print $1}' <<< "$i")
             e=$(awk -F '-' '{print $2}' <<< "$i")
+
+            # for showning selected anime episodes
+            print_info "Selected Episodes To Download From $s To $e"
             for n in $(seq "$s" "$e"); do
                 el+=("$n")
             done
         else
+            # for showning selected anime episodes
+            # if choose to download only one episode
+            print_info "Selected Episode To Download Is $1"
             el+=("$i")
         fi
     done
@@ -272,50 +304,7 @@ download_episodes() {
     [[ ${#uniqel[@]} == 0 ]] && print_error "Wrong episode number!"
 
     for e in "${uniqel[@]}"; do
-        # for showning anime name in information
-        print_info "Selected Anime: $_ANIME_NAME"
-
-        # for showning anime episodes in information
-        total="$("$_JQ" -r '.total' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" | sort -nu)"
-        
-        # if anime api did not have total episode variable then
-        if [[ "$total" == "null" ]]; then
-            start="$(head -1 <<< "$eps")"
-            start="$(($start-1))"
-            end="$(tail -1 <<< "$eps")"
-            total="$(($end-$start))"
-            print_info "Total Episodes: $total"
-        else
-            # if anime api have total episode variable then
-            print_info "Total Episodes: $total"
-        fi
-
-        # for showning selected anime episodes
-        # if choose to download all episodes
-        if [[ "$only" == *"*"* ]]; then
-            episodes="$("$_JQ" -r '.data[].episode' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" | sort -nu)"
-            start="$(head -1 <<< "$eps")"
-            end="$(tail -1 <<< "$eps")"
-
-            # if selected anime have only one episode
-            if [[ "$start" == "$end" ]]; then
-                print_info "Selected Episode To Download Is $start"
-            
-            # if selected anime have more than one episodes
-            else
-                print_info "Selected Episodes To Download From $start To $end"
-            fi
-        # if choose to download range of episodes
-        elif [[ "$only" == *"-"* ]]; then
-            start=$(awk -F '-' '{print $1}' <<< "$only")
-            last=$(awk -F '-' '{print $2}' <<< "$only")
-            print_info "Selected Episodes To Download From $start To $last"
-        
-        # if choose to download only one episode
-        else
-            print_info "Selected Episode To Download Is $only"
-        fi
-
+        print_info "----------------------------"
         download_episode "$e"
     done
 }
@@ -335,12 +324,12 @@ download_file() {
     # $1: URL link
     # $2: output file
     local s
-    s=$("$_CURL" -sS -H "Referer: $_REFERER_URL" -C - "$1" -L -g -o "$2" \
+    s=$("$_CURL" -s -H "Referer: $_REFERER_URL" -C - "$1" -L -g -o "$2" \
         --connect-timeout 5 \
         --compressed \
         || echo "$?")
     if [[ "$s" -ne 0 ]]; then
-        print_warn "Download was aborted. Retry..."
+        # print_warn "Download was aborted. Retry..."
         download_file "$1" "$2"
     fi
 }
