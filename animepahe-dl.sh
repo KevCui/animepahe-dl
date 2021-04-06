@@ -139,12 +139,6 @@ get_anime_id() {
     | awk -F '&' '{print $1}'
 }
 
-get_anime_pic_url() {
-    # $1: anime slug
-    "$_CURL" --compressed -sS -L "$_ANIME_URL/$1" \
-    | grep -Po '(?<=href=")(https)://i.[^"]*(?=")'
-}
-
 get_episode_list() {
     # $1: anime id
     # $2: page number
@@ -157,21 +151,6 @@ download_source() {
     id="$(get_anime_id "$_ANIME_SLUG")"
     d="$(get_episode_list "$id" "1")"
     p="$("$_JQ" -r '.last_page' <<< "$d")"
-
-    if [[ -n "${_TO_DOWNLOAD_PICTURE:-}" ]]; then
-        local cpath dpath pic
-        pic="$(get_anime_pic_url "$_ANIME_SLUG")"
-        print_info "Downloading Picture For Selected Anime: $_ANIME_NAME"
-
-        pname="${_ANIME_NAME}.jpg"
-        dpath="$_SCRIPT_PATH/${_ANIME_NAME}/"
-        cpath="$(pwd)"
-
-        cd "$dpath"
-        download_pic "$pic" "$pname"
-        cd "$cpath"
-    fi
-
 
     if [[ "$p" -gt "1" ]]; then
         for i in $(seq 2 "$p"); do
