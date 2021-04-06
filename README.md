@@ -141,7 +141,7 @@ $ ./animepahe-dl.sh -a jujutsu -e 1 -t 100
 - Enable picture downloading of selected anime:
 
 ```bash
-$ ./animepahe-dl.sh -a jujutsu -e 1 -p
+$ ./animepahe-dl.sh -a jujutsu -e 1 -j
 ```
 
 - Show only m3u8 playlist link, without downloading video file:
