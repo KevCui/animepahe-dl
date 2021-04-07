@@ -51,8 +51,6 @@ set_var() {
 set_args() {
     expr "$*" : ".*--help" > /dev/null && usage
     _PARALLEL_JOBS=1
-    _ANIME_RESOLUTION=""
-    _ANIME_AUDIO=""
     while getopts ":hlda:s:e:r:t:o:" opt; do
         case $opt in
             a)
