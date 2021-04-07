@@ -36,6 +36,7 @@ Options:
                           all episodes using "*"
   -r <resolution>         optional, specify resolution: "1080", "720"...
                           by default, the highest resolution is selected
+  -o <language>           optional, specify audio language: "eng", "jpn"...
   -t <num>                optional, specify a positive integer as num of threads
   -l                      optional, show m3u8 playlist link without downloading videos
   -d                      enable debug mode
@@ -127,8 +128,16 @@ $ ./animepahe-dl.sh -s 308f5756-6715-e404-998d-92f16b9d9858 -e '*'
 
 ```bash
 $ ./animepahe-dl.sh -a jujutsu -e 5 -r 360
-[INFO] Select resolution: 360
+[INFO] Select video resolution: 360
 [INFO] Downloading Episode 5...
+```
+
+- Specify audio language:
+
+```bash
+$ ./animepahe-dl.sh -a 'samurai 7' -e 1 -o eng
+[INFO] Select audio language: eng
+[INFO] Downloading Episode 1...
 ```
 
 - Enable parallel jobs to download faster:

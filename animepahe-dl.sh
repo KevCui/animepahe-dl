@@ -15,6 +15,7 @@
 #/                           all episodes using "*"
 #/   -r <resolution>         optional, specify resolution: "1080", "720"...
 #/                           by default, the highest resolution is selected
+#/   -o <language>           optional, specify audio language: "eng", "jpn"...
 #/   -t <num>                optional, specify a positive integer as num of threads
 #/   -l                      optional, show m3u8 playlist link without downloading videos
 #/   -d                      enable debug mode
@@ -50,7 +51,9 @@ set_var() {
 set_args() {
     expr "$*" : ".*--help" > /dev/null && usage
     _PARALLEL_JOBS=1
-    while getopts ":hlda:s:e:r:t:" opt; do
+    _ANIME_RESOLUTION=""
+    _ANIME_AUDIO=""
+    while getopts ":hlda:s:e:r:t:o:" opt; do
         case $opt in
             a)
                 _INPUT_ANIME_NAME="$OPTARG"
@@ -72,6 +75,9 @@ set_args() {
                 if [[ ! "$_PARALLEL_JOBS" =~ ^[0-9]+$ || "$_PARALLEL_JOBS" -eq 0 ]]; then
                     print_error "-t <num>: Number must be a positive integer"
                 fi
+                ;;
+            o)
+                _ANIME_AUDIO="$OPTARG"
                 ;;
             d)
                 _DEBUG_MODE=true
@@ -164,21 +170,30 @@ get_episode_link() {
     i=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .anime_id' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     s=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .session' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     [[ "$i" == "" ]] && print_error "Episode not found!"
-    d="$("$_CURL" --compressed -sS "${_API_URL}?m=embed&id=${i}&session=${s}&p=kwik")"
+    d="$("$_CURL" --compressed -sS "${_API_URL}?m=embed&id=${i}&session=${s}&p=kwik" \
+        | "$_JQ" -r '.data[]')"
+
+    if [[ -n "${_ANIME_AUDIO:-}" ]]; then
+        print_info "Select audio language: $_ANIME_AUDIO"
+        r="$("$_JQ" -r '.[] |= select(.audio == "'"$_ANIME_AUDIO"'") | select(.[] != null)' <<< "$d")"
+        if [[ -n "${r:-}" ]]; then
+            d="$r"
+        else
+            print_warn "Selected audio language is not available, fallback to default."
+        fi
+    fi
 
     if [[ -n "${_ANIME_RESOLUTION:-}" ]]; then
-        print_info "Select resolution: $_ANIME_RESOLUTION"
-        r="$("$_JQ" -r '.data[][$resolution] | select(. != null) | .kwik' \
-            --arg resolution "$_ANIME_RESOLUTION" <<< "$d" | head -1)"
+        print_info "Select video resolution: $_ANIME_RESOLUTION"
+        r="$("$_JQ" -r 'to_entries | .[] |= select(.key == "'"$_ANIME_RESOLUTION"'") | from_entries | select(.[] != null)' <<< "$d")"
+        if [[ -n "${r:-}" ]]; then
+            d="$r"
+        else
+            print_warn "Selected video resolution is not available, fallback to default"
+        fi
     fi
 
-    if [[ -z "$r" ]]; then
-        [[ -n "${_ANIME_RESOLUTION:-}" ]] &&
-            print_warn "Selected resolution not available, fallback to default"
-        "$_JQ" -r '.data[][].kwik' <<< "$d" | tail -1
-    else
-        echo "$r"
-    fi
+    "$_JQ" -r '.[].kwik' <<< "$d" | tail -1
 }
 
 get_playlist_link() {
