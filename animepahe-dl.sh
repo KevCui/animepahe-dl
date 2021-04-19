@@ -352,7 +352,7 @@ download_episode() {
             cd "$opath" || print_error "Cannot change directory to $opath"
             "$_FFMPEG" -f concat -safe 0 -i "$fname" -c copy $erropt -y "$v"
             cd "$cpath" || print_error "Cannot change directory to $cpath"
-            [[ -z "${_DEBUG_MODE:-}" ]] && rm -rf "$opath"
+            [[ -z "${_DEBUG_MODE:-}" ]] && rm -rf "$opath" || return 0 
         else
             "$_FFMPEG" -headers "Referer: $_REFERER_URL" -i "$pl" -c copy $erropt -y "$v"
         fi
