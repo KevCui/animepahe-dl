@@ -390,12 +390,7 @@ main() {
     _ANIME_NAME=$(sort -u "$_ANIME_LIST_FILE" \
         | grep "$_ANIME_SLUG" \
         | awk -F '] ' '{print $2}' \
-        | sed -E 's/\//_/g' \
-        | sed -E 's/\"/_/g' \
-        | sed -E 's/\?/_/g' \
-        | sed -E 's/\*/_/g' \
-        | sed -E "s/'/_/g" \
-        | sed -E 's/\:/_/g')
+        | sed -E 's/[^A-z0-9]/_/g')
 
     if [[ "$_ANIME_NAME" == "" ]]; then
         print_warn "Anime name not found! Try again."
