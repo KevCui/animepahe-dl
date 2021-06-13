@@ -28,7 +28,7 @@ Usage:
 
 Options:
   -a <name>               anime name
-  -s <slug>               anime slug, can be found in $_ANIME_LIST_FILE
+  -s <slug>               anime slug/uuid, can be found in $_ANIME_LIST_FILE
                           ignored when "-a" is enabled
   -e <num1,num3-num4...>  optional, episode number to download
                           multiple episode numbers seperated by ","
@@ -60,11 +60,13 @@ $ ./animepahe-dl.sh -a 'attack on titan'
 <anime list in fzf>
 ```
 
-- By default, anime slug is stored in `./anime.list` file. Download "One Punch Man" season 2 episode 3:
+- By default, anime slug/uuid is stored in `./anime.list` file. Download "One Punch Man" season 2 episode 3:
 
 ```bash
 $ ./animepahe-dl.sh -s 308f5756-6715-e404-998d-92f16b9d9858 -e 3
 ```
+
+Be aware that the value anime slug/uuid often changes, not permanent.
 
 - List "One Punch Man" season 2 all episodes:
 
