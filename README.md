@@ -146,6 +146,8 @@ $ ./animepahe-dl.sh -a 'samurai 7' -e 1 -o eng
 $ ./animepahe-dl.sh -a jujutsu -e 1 -t 100
 ```
 
+:warning: Be aware that the parallel download feature can be sometimes unstable, depending on the server side throttling. But usually, it should be stable with a number of threads below 50.
+
 - Show only m3u8 playlist link, without downloading video file:
 
 ```bash
