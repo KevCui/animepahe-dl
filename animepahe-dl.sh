@@ -387,7 +387,8 @@ main() {
     fi
 
     [[ "$_ANIME_SLUG" == "" ]] && print_error "Anime slug not found!"
-    _ANIME_NAME=$(grep -m 1 "$_ANIME_SLUG" "$_ANIME_LIST_FILE" \
+    _ANIME_NAME=$(grep "$_ANIME_SLUG" "$_ANIME_LIST_FILE" \
+        | tail -1 \
         | awk -F '] ' '{print $2}' \
         | sed -E 's/[^A-z0-9 .,\+\-\)\(]/_/g')
 
