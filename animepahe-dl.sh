@@ -46,6 +46,7 @@ set_var() {
     _SCRIPT_PATH=$(dirname "$(realpath "$0")")
     _ANIME_LIST_FILE="$_SCRIPT_PATH/anime.list"
     _SOURCE_FILE=".source.json"
+    _COOKIE="__ddg2="
 }
 
 set_args() {
@@ -113,7 +114,7 @@ command_not_found() {
 }
 
 download_anime_list() {
-    "$_CURL" --compressed -sS "$_ANIME_URL" \
+    "$_CURL" --compressed -sS "$_ANIME_URL" -H "Cookie: $_COOKIE" \
     | grep "/anime/" \
     | sed -E 's/.*anime\//[/;s/" title="/] /;s/\">.*//' \
     > "$_ANIME_LIST_FILE"
@@ -122,7 +123,7 @@ download_anime_list() {
 search_anime_by_name() {
     # $1: anime name
     local d n
-    d="$("$_CURL" --compressed -sS "$_HOST/api?m=search&q=${1// /%20}")"
+    d="$("$_CURL" --compressed -sS "$_HOST/api?m=search&q=${1// /%20}" -H "Cookie: $_COOKIE")"
     n="$("$_JQ" -r '.total' <<< "$d")"
     if [[ "$n" -eq "0" ]]; then
         echo ""
@@ -133,7 +134,7 @@ search_anime_by_name() {
 
 get_anime_id() {
     # $1: anime slug
-    "$_CURL" --compressed -sS -L "$_ANIME_URL/$1" \
+    "$_CURL" --compressed -sS -L "$_ANIME_URL/$1" -H "Cookie: $_COOKIE" \
     | grep getJSON \
     | sed -E 's/.*id=//' \
     | awk -F '&' '{print $1}'
@@ -142,7 +143,7 @@ get_anime_id() {
 get_episode_list() {
     # $1: anime id
     # $2: page number
-    "$_CURL" --compressed -sS "${_API_URL}?m=release&id=${1}&sort=episode_asc&page=${2}"
+    "$_CURL" --compressed -sS "${_API_URL}?m=release&id=${1}&sort=episode_asc&page=${2}" -H "Cookie: $_COOKIE"
 }
 
 download_source() {
@@ -168,7 +169,7 @@ get_episode_link() {
     i=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .anime_id' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     s=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .session' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     [[ "$i" == "" ]] && print_error "Episode not found!"
-    d="$("$_CURL" --compressed -sS "${_API_URL}?m=embed&id=${i}&session=${s}&p=kwik" \
+    d="$("$_CURL" --compressed -sS "${_API_URL}?m=embed&id=${i}&session=${s}&p=kwik" -H "Cookie: $_COOKIE" \
         | "$_JQ" -r '.data[]')"
 
     if [[ -n "${_ANIME_AUDIO:-}" ]]; then
