@@ -10,7 +10,7 @@
 - [Disclaimer](#disclaimer)
 - [You may like...](#you-may-like)
   - [Don't like animepahe? Want an alternative?](#dont-like-animepahe-want-an-alternative)
-  - [What to know when the new episode of your favorite anime will be released?](#what-to-know-when-the-new-episode-of-your-favorite-anime-will-be-released)
+  - [Want to know when the new episode of your favorite anime will be released?](#want-to-know-when-the-new-episode-of-your-favorite-anime-will-be-released)
 
 ## Dependency
 
@@ -171,7 +171,7 @@ The purpose of this script is to download anime episodes in order to watch them 
 
 Check out [twistmoe-dl](https://github.com/KevCui/twistmoe-dl)
 
-### What to know when the new episode of your favorite anime will be released?
+### Want to know when the new episode of your favorite anime will be released?
 
 Check out this script [tvdb-cli](https://github.com/KevCui/tvdb-cli)
 
