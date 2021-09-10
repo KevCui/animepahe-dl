@@ -391,7 +391,7 @@ main() {
     _ANIME_NAME=$(grep "$_ANIME_SLUG" "$_ANIME_LIST_FILE" \
         | tail -1 \
         | awk -F '] ' '{print $2}' \
-        | sed -E 's/[^A-z0-9 .,\+\-\)\(]/_/g')
+        | sed -E 's/[^[:alnum:] .,\+\-\)\(]/_/g')
 
     if [[ "$_ANIME_NAME" == "" ]]; then
         print_warn "Anime name not found! Try again."
