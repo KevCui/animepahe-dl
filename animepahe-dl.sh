@@ -44,6 +44,7 @@ set_var() {
     _REFERER_URL="https://kwik.cx/"
 
     _SCRIPT_PATH=$(dirname "$(realpath "$0")")
+    _DL_PATH="$_SCRIPT_PATH"
     _ANIME_LIST_FILE="$_SCRIPT_PATH/anime.list"
     _SOURCE_FILE=".source.json"
     _COOKIE="__ddg2="
@@ -148,7 +149,7 @@ get_episode_list() {
 
 download_source() {
     local id d p n
-    mkdir -p "$_SCRIPT_PATH/$_ANIME_NAME"
+    mkdir -p "$_DL_PATH/$_ANIME_NAME"
     id="$(get_anime_id "$_ANIME_SLUG")"
     d="$(get_episode_list "$id" "1")"
     p="$("$_JQ" -r '.last_page' <<< "$d")"
@@ -324,7 +325,7 @@ decrypt_segments() {
 download_episode() {
     # $1: episode number
     local num="$1" l pl erropt='' v
-    v="$_SCRIPT_PATH/${_ANIME_NAME}/${num}.mp4"
+    v="$_DL_PATH/${_ANIME_NAME}/${num}.mp4"
 
     l=$(get_episode_link "$num")
     [[ "$l" != *"/"* ]] && print_error "Wrong download link or episode not found!"
@@ -339,7 +340,7 @@ download_episode() {
             local opath plist cpath fname
             fname="file.list"
             cpath="$(pwd)"
-            opath="$_SCRIPT_PATH/$_ANIME_NAME/${num}"
+            opath="$_DL_PATH/$_ANIME_NAME/${num}"
             plist="${opath}/playlist.m3u8"
             rm -rf "$opath"
             mkdir -p "$opath"
