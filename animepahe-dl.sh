@@ -229,7 +229,7 @@ download_episodes() {
     for i in "${origel[@]}"; do
         if [[ "$i" == *"*"* ]]; then
             local eps fst lst
-            eps="$("$_JQ" -r '.data[].episode' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" | sort -nu)"
+            eps="$("$_JQ" -r '.data[].episode' "$_DL_PATH/$_ANIME_NAME/$_SOURCE_FILE" | sort -nu)"
             fst="$(head -1 <<< "$eps")"
             lst="$(tail -1 <<< "$eps")"
             i="${fst}-${lst}"
@@ -364,8 +364,8 @@ download_episode() {
 }
 
 select_episodes_to_download() {
-    [[ "$(grep 'data' -c "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")" -eq "0" ]] && print_error "No episode available!"
-    "$_JQ" -r '.data[] | "[\(.episode | tonumber)] E\(.episode | tonumber) \(.created_at)"' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" >&2
+    [[ "$(grep 'data' -c "$_DL_PATH/$_ANIME_NAME/$_SOURCE_FILE")" -eq "0" ]] && print_error "No episode available!"
+    "$_JQ" -r '.data[] | "[\(.episode | tonumber)] E\(.episode | tonumber) \(.created_at)"' "$_DL_PATH/$_ANIME_NAME/$_SOURCE_FILE" >&2
     echo -n "Which episode(s) to download: " >&2
     read -r s
     echo "$s"
