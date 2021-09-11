@@ -161,14 +161,14 @@ download_source() {
         done
     fi
 
-    echo "$d" > "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE"
+    echo "$d" > "$_DL_PATH/$_ANIME_NAME/$_SOURCE_FILE"
 }
 
 get_episode_link() {
     # $1: episode number
     local i s d r=""
-    i=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .anime_id' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
-    s=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .session' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
+    i=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .anime_id' --arg num "$1" < "$_DL_PATH/$_ANIME_NAME/$_SOURCE_FILE")
+    s=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .session' --arg num "$1" < "$_DL_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     [[ "$i" == "" ]] && print_error "Episode not found!"
     d="$("$_CURL" --compressed -sS "${_API_URL}?m=embed&id=${i}&session=${s}&p=kwik" -H "Cookie: $_COOKIE" \
         | "$_JQ" -r '.data[]')"
