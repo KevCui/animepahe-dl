@@ -52,6 +52,7 @@ set_var() {
 set_args() {
     expr "$*" : ".*--help" > /dev/null && usage
     _PARALLEL_JOBS=1
+
     while getopts ":hlda:s:e:r:t:o:" opt; do
         case $opt in
             a)
@@ -213,7 +214,7 @@ get_playlist_link() {
 
 download_episodes() {
     # $1: episode number string
-    local origel el uniqel
+    local origel el uniqel eps failed
     origel=()
     if [[ "$1" == *","* ]]; then
         IFS="," read -ra ADDR <<< "$1"
@@ -225,16 +226,12 @@ download_episodes() {
     fi
 
     el=()
+    eps="$("$_JQ" -r '.data[].episode' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" | sort -nu)"
+    nl=$'\n'
     for i in "${origel[@]}"; do
         if [[ "$i" == *"*"* ]]; then
-            local eps fst lst
-            eps="$("$_JQ" -r '.data[].episode' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" | sort -nu)"
-            fst="$(head -1 <<< "$eps")"
-            lst="$(tail -1 <<< "$eps")"
-            i="${fst}-${lst}"
-        fi
-
-        if [[ "$i" == *"-"* ]]; then
+            IFS=$nl el+=($eps)
+        elif [[ "$i" == *"-"* ]]; then
             s=$(awk -F '-' '{print $1}' <<< "$i")
             e=$(awk -F '-' '{print $2}' <<< "$i")
             for n in $(seq "$s" "$e"); do
@@ -245,13 +242,25 @@ download_episodes() {
         fi
     done
 
-    IFS=" " read -ra uniqel <<< "$(printf '%s\n' "${el[@]}" | sort -n -u | tr '\n' ' ')"
-
-    [[ ${#uniqel[@]} == 0 ]] && print_error "Wrong episode number!"
-
+    uniqel=()
+    while read -r n; do
+        [[ "$nl$eps$nl" =~ "$nl$n$nl" ]] && uniqel+=("$n") || print_warn "Episode $n is not available";
+    done <<< "$(printf '%s\n' "${el[@]}" | sort -n -u)";
+    
+    [[ ${#uniqel[@]} == 0 ]] && print_error "No episodes to download!"
+    
+    failed=()
     for e in "${uniqel[@]}"; do
-        download_episode "$e"
+        [[ -z ${_LIST_LINK_ONLY:-} ]] && print_info "Downloading episode $e";
+        if ! (download_episode "$e"); then
+            failed+=("$e");
+            print_warn "Episode $e not downloaded";
+            continue;
+        fi
+        [[ -z ${_LIST_LINK_ONLY:-} ]] && print_info "Downloaded episode $e";
     done
+
+    [[ ${#failed[@]} != 0 ]] && print_info "Unable to download episodes: ${failed[@]}";
 }
 
 get_thread_number() {
@@ -333,7 +342,6 @@ download_episode() {
     [[ -z "${pl:-}" ]] && print_error "Missing video list!"
 
     if [[ -z ${_LIST_LINK_ONLY:-} ]]; then
-        print_info "Downloading Episode $1..."
         [[ -z "${_DEBUG_MODE:-}" ]] && erropt="-v error"
         if [[ ${_PARALLEL_JOBS:-} -gt 1 ]]; then
             local opath plist cpath fname
