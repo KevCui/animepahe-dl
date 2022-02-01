@@ -330,7 +330,7 @@ download_episode() {
     [[ "$l" != *"/"* ]] && print_warn "Wrong download link or episode $1 not found!" && return
 
     pl=$(get_playlist_link "$l")
-    [[ -z "${pl:-}" ]] && print_error "Missing video list!"
+    [[ -z "${pl:-}" ]] && print_warn "Missing video list! Skip downloading!" && return
 
     if [[ -z ${_LIST_LINK_ONLY:-} ]]; then
         print_info "Downloading Episode $1..."
@@ -350,9 +350,9 @@ download_episode() {
             decrypt_segments "$plist" "$opath"
             generate_filelist "$plist" "${opath}/$fname"
 
-            cd "$opath" || print_error "Cannot change directory to $opath"
+            cd "$opath" || print_warn "Cannot change directory to $opath" && return
             "$_FFMPEG" -f concat -safe 0 -i "$fname" -c copy $erropt -y "$v"
-            cd "$cpath" || print_error "Cannot change directory to $cpath"
+            cd "$cpath" || print_warn "Cannot change directory to $cpath" && return
             [[ -z "${_DEBUG_MODE:-}" ]] && rm -rf "$opath" || return 0
         else
             "$_FFMPEG" -headers "Referer: $_REFERER_URL" -i "$pl" -c copy $erropt -y "$v"
