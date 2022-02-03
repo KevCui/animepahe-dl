@@ -168,7 +168,7 @@ get_episode_link() {
     local i s d r=""
     i=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .anime_id' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     s=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .session' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
-    [[ "$i" == "" ]] && print_error "Episode not found!"
+    [[ "$i" == "" ]] && print_warn "Episode $1 not found!" && return
     d="$("$_CURL" --compressed -sS "${_API_URL}?m=embed&id=${i}&session=${s}&p=kwik" -H "Cookie: $_COOKIE" \
         | "$_JQ" -r '.data[]')"
 
@@ -327,10 +327,10 @@ download_episode() {
     v="$_SCRIPT_PATH/${_ANIME_NAME}/${num}.mp4"
 
     l=$(get_episode_link "$num")
-    [[ "$l" != *"/"* ]] && print_error "Wrong download link or episode not found!"
+    [[ "$l" != *"/"* ]] && print_warn "Wrong download link or episode $1 not found!" && return
 
     pl=$(get_playlist_link "$l")
-    [[ -z "${pl:-}" ]] && print_error "Missing video list!"
+    [[ -z "${pl:-}" ]] && print_warn "Missing video list! Skip downloading!" && return
 
     if [[ -z ${_LIST_LINK_ONLY:-} ]]; then
         print_info "Downloading Episode $1..."
@@ -350,9 +350,9 @@ download_episode() {
             decrypt_segments "$plist" "$opath"
             generate_filelist "$plist" "${opath}/$fname"
 
-            cd "$opath" || print_error "Cannot change directory to $opath"
+            ! cd "$opath" && print_warn "Cannot change directory to $opath" && return
             "$_FFMPEG" -f concat -safe 0 -i "$fname" -c copy $erropt -y "$v"
-            cd "$cpath" || print_error "Cannot change directory to $cpath"
+            ! cd "$cpath" && print_warn "Cannot change directory to $cpath" && return
             [[ -z "${_DEBUG_MODE:-}" ]] && rm -rf "$opath" || return 0
         else
             "$_FFMPEG" -headers "Referer: $_REFERER_URL" -i "$pl" -c copy $erropt -y "$v"
