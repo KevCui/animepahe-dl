@@ -6,3 +6,6 @@ node_modules
 package-lock.json
 .editorconfig
 .*
+cookie.json
+bin/*.json
+user-agent

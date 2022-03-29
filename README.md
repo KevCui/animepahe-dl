@@ -5,6 +5,7 @@
 ## Table of Contents
 
 - [Dependency](#dependency)
+- [Installation](#installation)
 - [How to use](#how-to-use)
   - [Example](#example)
 - [Disclaimer](#disclaimer)
@@ -19,6 +20,17 @@
 - [Node.js](https://nodejs.org/en/download/)
 - [ffmpeg](https://ffmpeg.org/download.html)
 - [openssl](https://www.openssl.org/source/): optional, needed when using `-t <num>` for faster download
+- Chrome / Chromium browser
+
+
+## Installation
+
+- Install npm packages:
+
+```
+$ cd bin
+$ npm i puppeteer-extra puppeteer-extra-plugin-stealth
+```
 
 ## How to use
 

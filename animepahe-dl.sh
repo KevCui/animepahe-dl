@@ -34,6 +34,7 @@ set_var() {
     _FZF="$(command -v fzf)" || command_not_found "fzf"
     _NODE="$(command -v node)" || command_not_found "node"
     _FFMPEG="$(command -v ffmpeg)" || command_not_found "ffmpeg"
+    _CHROME="$(command -v chromium)" || "$(command -v chrome)" || command_not_found "chrome"
     if [[ ${_PARALLEL_JOBS:-} -gt 1 ]]; then
        _OPENSSL="$(command -v openssl)" || command_not_found "openssl"
     fi
@@ -46,7 +47,17 @@ set_var() {
     _SCRIPT_PATH=$(dirname "$(realpath "$0")")
     _ANIME_LIST_FILE="$_SCRIPT_PATH/anime.list"
     _SOURCE_FILE=".source.json"
-    _COOKIE="__ddg2="
+
+    _COOKIE_FILE="${_SCRIPT_PATH}/cookie.json"
+    _USER_AGENT_FILE="${_SCRIPT_PATH}/user-agent"
+    _GET_COOKIE_JS="${_SCRIPT_PATH}/bin/getCookie.js"
+    if [[ -s "$_USER_AGENT_FILE" ]]; then
+        _USER_AGENT="$(cat "$_USER_AGENT_FILE")"
+    else
+        randnum="$(shuf -i 1-30 -n1)"
+        _USER_AGENT="Mozilla/5.0 (Windows NT 6.1; WOW64; rv:$randnum.0) Gecko/20100101 Firefox/$randnum.0"
+        echo "$_USER_AGENT" > "$_USER_AGENT_FILE"
+    fi
 }
 
 set_args() {
@@ -113,8 +124,53 @@ command_not_found() {
     print_error "$1 command not found!"
 }
 
+get() {
+    # $1: url
+    local cookie
+    cookie="$(get_cookie)"
+    "$_CURL" -sS -L -A "$_USER_AGENT" -H "Cookie: $cookie" "$1" --compressed
+}
+
+get_cookie() {
+    if [[ "$(is_file_expired "$_COOKIE_FILE" "10080")" == "yes" ]]; then
+        local cookie
+        print_info "Wait a few seconds for fetching cookie..."
+        cookie="$($_GET_COOKIE_JS "$_CHROME" "$_HOST" "$_USER_AGENT" 2>/dev/null)"
+        if [[ -z "${cookie:-}" ]]; then
+            get_cookie
+        else
+            echo "$cookie" > "$_COOKIE_FILE"
+        fi
+    fi
+    "$_JQ" -r '.[] | select(.name=="cf_clearance") | "\(.name)=\(.value)"' "$_COOKIE_FILE" | tr '\n' ';'
+}
+
+remove_temp_file() {
+    rm -f "$_COOKIE_FILE"
+    rm -f "$_USER_AGENT_FILE"
+}
+
+is_file_expired() {
+    # $1: file
+    # $2: n minutes
+    local o
+    o="yes"
+
+    if [[ -f "$1" && -s "$1" ]]; then
+        local d n
+        d=$(date -d "$(date -r "$1") +$2 minutes" +%s)
+        n=$(date +%s)
+
+        if [[ "$n" -lt "$d" ]]; then
+            o="no"
+        fi
+    fi
+
+    echo "$o"
+}
+
 download_anime_list() {
-    "$_CURL" --compressed -sS "$_ANIME_URL" -H "Cookie: $_COOKIE" \
+    get "$_ANIME_URL" \
     | grep "/anime/" \
     | sed -E 's/.*anime\//[/;s/" title="/] /;s/\">.*//' \
     > "$_ANIME_LIST_FILE"
@@ -123,7 +179,7 @@ download_anime_list() {
 search_anime_by_name() {
     # $1: anime name
     local d n
-    d="$("$_CURL" --compressed -sS "$_HOST/api?m=search&q=${1// /%20}" -H "Cookie: $_COOKIE")"
+    d="$(get "$_HOST/api?m=search&q=${1// /%20}")"
     n="$("$_JQ" -r '.total' <<< "$d")"
     if [[ "$n" -eq "0" ]]; then
         echo ""
@@ -134,7 +190,7 @@ search_anime_by_name() {
 
 get_anime_id() {
     # $1: anime slug
-    "$_CURL" --compressed -sS -L "$_ANIME_URL/$1" -H "Cookie: $_COOKIE" \
+    get "$_ANIME_URL/$1" \
     | grep getJSON \
     | sed -E 's/.*id=//' \
     | awk -F '&' '{print $1}'
@@ -143,7 +199,7 @@ get_anime_id() {
 get_episode_list() {
     # $1: anime id
     # $2: page number
-    "$_CURL" --compressed -sS "${_API_URL}?m=release&id=${1}&sort=episode_asc&page=${2}" -H "Cookie: $_COOKIE"
+    get "${_API_URL}?m=release&id=${1}&sort=episode_asc&page=${2}"
 }
 
 download_source() {
@@ -169,8 +225,7 @@ get_episode_link() {
     i=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .anime_id' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     s=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .session' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     [[ "$i" == "" ]] && print_warn "Episode $1 not found!" && return
-    d="$("$_CURL" --compressed -sS "${_API_URL}?m=embed&id=${i}&session=${s}&p=kwik" -H "Cookie: $_COOKIE" \
-        | "$_JQ" -r '.data[]')"
+    d="$(get "${_API_URL}?m=embed&id=${i}&session=${s}&p=kwik" | "$_JQ" -r '.data[]')"
 
     if [[ -n "${_ANIME_AUDIO:-}" ]]; then
         print_info "Select audio language: $_ANIME_AUDIO"
@@ -387,13 +442,14 @@ main() {
         fi
     fi
 
-    [[ "$_ANIME_SLUG" == "" ]] && print_error "Anime slug not found!"
+    [[ "$_ANIME_SLUG" == "" ]] && (remove_temp_file; print_error "Anime slug not found!")
     _ANIME_NAME=$(grep "$_ANIME_SLUG" "$_ANIME_LIST_FILE" \
         | tail -1 \
         | awk -F '] ' '{print $2}' \
         | sed -E 's/[^[:alnum:] ,\+\-\)\(]/_/g')
 
     if [[ "$_ANIME_NAME" == "" ]]; then
+        remove_temp_file
         print_warn "Anime name not found! Try again."
         download_anime_list
         exit 1
