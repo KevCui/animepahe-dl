@@ -132,7 +132,7 @@ get() {
 }
 
 get_cookie() {
-    if [[ "$(is_file_expired "$_COOKIE_FILE" "10080")" == "yes" ]]; then
+    if [[ "$(is_file_expired "$_COOKIE_FILE" "120")" == "yes" ]]; then
         local cookie
         print_info "Wait a few seconds for fetching cookie..."
         cookie="$($_GET_COOKIE_JS "$_CHROME" "$_HOST" "$_USER_AGENT" 2>/dev/null)"
