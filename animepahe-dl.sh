@@ -34,7 +34,7 @@ set_var() {
     _FZF="$(command -v fzf)" || command_not_found "fzf"
     _NODE="$(command -v node)" || command_not_found "node"
     _FFMPEG="$(command -v ffmpeg)" || command_not_found "ffmpeg"
-    _CHROME="$(command -v chromium)" || "$(command -v chrome)" || command_not_found "chrome"
+    _CHROME="$(command -v chromium)" || _CHROME="$(command -v chrome)" || command_not_found "chrome"
     if [[ ${_PARALLEL_JOBS:-} -gt 1 ]]; then
        _OPENSSL="$(command -v openssl)" || command_not_found "openssl"
     fi
