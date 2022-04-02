@@ -50,12 +50,12 @@ set_var() {
 
     _COOKIE_FILE="${_SCRIPT_PATH}/cookie.json"
     _USER_AGENT_FILE="${_SCRIPT_PATH}/user-agent"
+    _USER_AGENT_LIST_FILE="${_SCRIPT_PATH}/user-agent.list"
     _GET_COOKIE_JS="${_SCRIPT_PATH}/bin/getCookie.js"
     if [[ -s "$_USER_AGENT_FILE" ]]; then
         _USER_AGENT="$(cat "$_USER_AGENT_FILE")"
     else
-        randnum="$(shuf -i 1-30 -n1)"
-        _USER_AGENT="Mozilla/5.0 (Windows NT 6.1; WOW64; rv:$randnum.0) Gecko/20100101 Firefox/$randnum.0"
+        _USER_AGENT="$(shuf -n1 "$_USER_AGENT_LIST_FILE")"
         echo "$_USER_AGENT" > "$_USER_AGENT_FILE"
     fi
 }
