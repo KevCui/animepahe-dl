@@ -19,6 +19,7 @@
 #/   -t <num>                optional, specify a positive integer as num of threads
 #/   -l                      optional, show m3u8 playlist link without downloading videos
 #/   -d                      enable debug mode
+#/   -f                      set folder to download anime to, by default this script's folder
 #/   -h | --help             display this help message
 
 set -e
@@ -52,7 +53,9 @@ set_var() {
     _USER_AGENT_FILE="${_SCRIPT_PATH}/user-agent"
     _USER_AGENT_LIST_FILE="${_SCRIPT_PATH}/user-agent.list"
     _GET_COOKIE_JS="${_SCRIPT_PATH}/bin/getCookie.js"
-    if [[ -s "$_USER_AGENT_FILE" ]]; then
+	_PREFIX_FOLDER=${_PREFIX_FOLDER:=${_SCRIPT_PATH}}
+
+	if [[ -s "$_USER_AGENT_FILE" ]]; then
         _USER_AGENT="$(cat "$_USER_AGENT_FILE")"
     else
         _USER_AGENT="$(shuf -n1 "$_USER_AGENT_LIST_FILE")"
@@ -63,7 +66,7 @@ set_var() {
 set_args() {
     expr "$*" : ".*--help" > /dev/null && usage
     _PARALLEL_JOBS=1
-    while getopts ":hlda:s:e:r:t:o:" opt; do
+    while getopts ":hlda:s:e:r:t:o:f:" opt; do
         case $opt in
             a)
                 _INPUT_ANIME_NAME="$OPTARG"
@@ -88,6 +91,9 @@ set_args() {
                 ;;
             o)
                 _ANIME_AUDIO="$OPTARG"
+                ;;
+            f)
+                _PREFIX_FOLDER="$OPTARG"
                 ;;
             d)
                 _DEBUG_MODE=true
@@ -204,7 +210,7 @@ get_episode_list() {
 
 download_source() {
     local id d p n
-    mkdir -p "$_SCRIPT_PATH/$_ANIME_NAME"
+    mkdir -p "$_PREFIX_FOLDER/$_ANIME_NAME"
     id="$(get_anime_id "$_ANIME_SLUG")"
     d="$(get_episode_list "$id" "1")"
     p="$("$_JQ" -r '.last_page' <<< "$d")"
@@ -216,14 +222,14 @@ download_source() {
         done
     fi
 
-    echo "$d" > "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE"
+    echo "$d" > "$_PREFIX_FOLDER/$_ANIME_NAME/$_SOURCE_FILE"
 }
 
 get_episode_link() {
     # $1: episode number
     local i s d r=""
-    i=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .anime_id' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
-    s=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .session' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
+    i=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .anime_id' --arg num "$1" < "$_PREFIX_FOLDER/$_ANIME_NAME/$_SOURCE_FILE")
+    s=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .session' --arg num "$1" < "$_PREFIX_FOLDER/$_ANIME_NAME/$_SOURCE_FILE")
     [[ "$i" == "" ]] && print_warn "Episode $1 not found!" && return
     d="$(get "${_API_URL}?m=embed&id=${i}&session=${s}&p=kwik" | "$_JQ" -r '.data[]')"
 
@@ -283,7 +289,7 @@ download_episodes() {
     for i in "${origel[@]}"; do
         if [[ "$i" == *"*"* ]]; then
             local eps fst lst
-            eps="$("$_JQ" -r '.data[].episode' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" | sort -nu)"
+            eps="$("$_JQ" -r '.data[].episode' "$_PREFIX_FOLDER/$_ANIME_NAME/$_SOURCE_FILE" | sort -nu)"
             fst="$(head -1 <<< "$eps")"
             lst="$(tail -1 <<< "$eps")"
             i="${fst}-${lst}"
@@ -379,7 +385,7 @@ decrypt_segments() {
 download_episode() {
     # $1: episode number
     local num="$1" l pl erropt='' v
-    v="$_SCRIPT_PATH/${_ANIME_NAME}/${num}.mp4"
+    v="$_PREFIX_FOLDER/${_ANIME_NAME}/${num}.mp4"
 
     l=$(get_episode_link "$num")
     [[ "$l" != *"/"* ]] && print_warn "Wrong download link or episode $1 not found!" && return
@@ -394,7 +400,7 @@ download_episode() {
             local opath plist cpath fname
             fname="file.list"
             cpath="$(pwd)"
-            opath="$_SCRIPT_PATH/$_ANIME_NAME/${num}"
+            opath="$_PREFIX_FOLDER/$_ANIME_NAME/${num}"
             plist="${opath}/playlist.m3u8"
             rm -rf "$opath"
             mkdir -p "$opath"
@@ -418,8 +424,8 @@ download_episode() {
 }
 
 select_episodes_to_download() {
-    [[ "$(grep 'data' -c "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")" -eq "0" ]] && print_error "No episode available!"
-    "$_JQ" -r '.data[] | "[\(.episode | tonumber)] E\(.episode | tonumber) \(.created_at)"' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" >&2
+    [[ "$(grep 'data' -c "$_PREFIX_FOLDER/$_ANIME_NAME/$_SOURCE_FILE")" -eq "0" ]] && print_error "No episode available!"
+    "$_JQ" -r '.data[] | "[\(.episode | tonumber)] E\(.episode | tonumber) \(.created_at)"' "$_PREFIX_FOLDER/$_ANIME_NAME/$_SOURCE_FILE" >&2
     echo -n "Which episode(s) to download: " >&2
     read -r s
     echo "$s"
