@@ -34,7 +34,6 @@ set_var() {
     _FZF="$(command -v fzf)" || command_not_found "fzf"
     _NODE="$(command -v node)" || command_not_found "node"
     _FFMPEG="$(command -v ffmpeg)" || command_not_found "ffmpeg"
-    _CHROME="$(command -v chromium)" || _CHROME="$(command -v chrome)" || command_not_found "chrome"
     if [[ ${_PARALLEL_JOBS:-} -gt 1 ]]; then
        _OPENSSL="$(command -v openssl)" || command_not_found "openssl"
     fi
@@ -47,17 +46,6 @@ set_var() {
     _SCRIPT_PATH=$(dirname "$(realpath "$0")")
     _ANIME_LIST_FILE="$_SCRIPT_PATH/anime.list"
     _SOURCE_FILE=".source.json"
-
-    _COOKIE_FILE="${_SCRIPT_PATH}/cookie.json"
-    _USER_AGENT_FILE="${_SCRIPT_PATH}/user-agent"
-    _USER_AGENT_LIST_FILE="${_SCRIPT_PATH}/user-agent.list"
-    _GET_COOKIE_JS="${_SCRIPT_PATH}/bin/getCookie.js"
-    if [[ -s "$_USER_AGENT_FILE" ]]; then
-        _USER_AGENT="$(cat "$_USER_AGENT_FILE")"
-    else
-        _USER_AGENT="$(shuf -n1 "$_USER_AGENT_LIST_FILE")"
-        echo "$_USER_AGENT" > "$_USER_AGENT_FILE"
-    fi
 }
 
 set_args() {
@@ -126,47 +114,7 @@ command_not_found() {
 
 get() {
     # $1: url
-    local cookie
-    cookie="$(get_cookie)"
-    "$_CURL" -sS -L -A "$_USER_AGENT" -H "Cookie: $cookie" "$1" --compressed
-}
-
-get_cookie() {
-    if [[ "$(is_file_expired "$_COOKIE_FILE" "120")" == "yes" ]]; then
-        local cookie
-        print_info "Wait a few seconds for fetching cookie..."
-        cookie="$($_GET_COOKIE_JS "$_CHROME" "$_HOST" "$_USER_AGENT" 2>/dev/null)"
-        if [[ -z "${cookie:-}" ]]; then
-            get_cookie
-        else
-            echo "$cookie" > "$_COOKIE_FILE"
-        fi
-    fi
-    "$_JQ" -r '.[] | select(.name=="cf_clearance") | "\(.name)=\(.value)"' "$_COOKIE_FILE" | tr '\n' ';'
-}
-
-remove_temp_file() {
-    rm -f "$_COOKIE_FILE"
-    rm -f "$_USER_AGENT_FILE"
-}
-
-is_file_expired() {
-    # $1: file
-    # $2: n minutes
-    local o
-    o="yes"
-
-    if [[ -f "$1" && -s "$1" ]]; then
-        local d n
-        d=$(date -d "$(date -r "$1") +$2 minutes" +%s)
-        n=$(date +%s)
-
-        if [[ "$n" -lt "$d" ]]; then
-            o="no"
-        fi
-    fi
-
-    echo "$o"
+    "$_CURL" -sS -L "$1" --compressed
 }
 
 download_anime_list() {
@@ -188,14 +136,6 @@ search_anime_by_name() {
     fi
 }
 
-get_anime_id() {
-    # $1: anime slug
-    get "$_ANIME_URL/$1" \
-    | grep getJSON \
-    | sed -E 's/.*id=//' \
-    | awk -F '&' '{print $1}'
-}
-
 get_episode_list() {
     # $1: anime id
     # $2: page number
@@ -203,15 +143,14 @@ get_episode_list() {
 }
 
 download_source() {
-    local id d p n
+    local d p n
     mkdir -p "$_SCRIPT_PATH/$_ANIME_NAME"
-    id="$(get_anime_id "$_ANIME_SLUG")"
-    d="$(get_episode_list "$id" "1")"
+    d="$(get_episode_list "$_ANIME_SLUG" "1")"
     p="$("$_JQ" -r '.last_page' <<< "$d")"
 
     if [[ "$p" -gt "1" ]]; then
         for i in $(seq 2 "$p"); do
-            n="$(get_episode_list "$id" "$i")"
+            n="$(get_episode_list "$_ANIME_SLUG" "$i")"
             d="$(echo "$d $n" | "$_JQ" -s '.[0].data + .[1].data | {data: .}')"
         done
     fi
@@ -442,14 +381,13 @@ main() {
         fi
     fi
 
-    [[ "$_ANIME_SLUG" == "" ]] && (remove_temp_file; print_error "Anime slug not found!")
+    [[ "$_ANIME_SLUG" == "" ]] && print_error "Anime slug not found!"
     _ANIME_NAME=$(grep "$_ANIME_SLUG" "$_ANIME_LIST_FILE" \
         | tail -1 \
         | awk -F '] ' '{print $2}' \
         | sed -E 's/[^[:alnum:] ,\+\-\)\(]/_/g')
 
     if [[ "$_ANIME_NAME" == "" ]]; then
-        remove_temp_file
         print_warn "Anime name not found! Try again."
         download_anime_list
         exit 1
