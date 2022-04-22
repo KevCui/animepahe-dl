@@ -395,7 +395,10 @@ main() {
     fi
 
     [[ "$_ANIME_SLUG" == "" ]] && print_error "Anime slug not found!"
-    _ANIME_NAME="$(sed -E 's/[^[:alnum:] ,\+\-\)\(]/_/g' <<< "$_ANIME_NAME")"
+    _ANIME_NAME="$(grep "$_ANIME_SLUG" "$_ANIME_LIST_FILE" \
+        | tail -1 \
+        | remove_slug \
+        | sed -E 's/[^[:alnum:] ,\+\-\)\(]/_/g')"
 
     if [[ "$_ANIME_NAME" == "" ]]; then
         print_warn "Anime name not found! Try again."
