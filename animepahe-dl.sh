@@ -132,7 +132,9 @@ search_anime_by_name() {
     if [[ "$n" -eq "0" ]]; then
         echo ""
     else
-        "$_JQ" -r '.data[] | "[\(.session)] \(.title)"' <<< "$d" | tee -a "$_ANIME_LIST_FILE"
+        "$_JQ" -r '.data[] | "[\(.session)] \(.title)"' <<< "$d" \
+            | tee -a "$_ANIME_LIST_FILE" \
+            | remove_slug
     fi
 }
 
@@ -368,23 +370,34 @@ remove_brackets() {
     awk -F']' '{print $1}' | sed -E 's/^\[//'
 }
 
+remove_slug() {
+    awk -F'] ' '{print $2}'
+}
+
+get_slug_from_name() {
+    # $1: anime name
+    grep -E '] '"$1"'$' "$_ANIME_LIST_FILE" | head -1 | remove_brackets
+}
+
 main() {
     set_args "$@"
     set_var
 
     if [[ -n "${_INPUT_ANIME_NAME:-}" ]]; then
-        _ANIME_SLUG=$("$_FZF" -1 <<< "$(search_anime_by_name "$_INPUT_ANIME_NAME")" | remove_brackets)
+        _ANIME_NAME=$("$_FZF" -1 <<< "$(search_anime_by_name "$_INPUT_ANIME_NAME")")
+        _ANIME_SLUG="$(get_slug_from_name "$_ANIME_NAME")"
     else
         download_anime_list
         if [[ -z "${_ANIME_SLUG:-}" ]]; then
-            _ANIME_SLUG=$("$_FZF" < "$_ANIME_LIST_FILE" | remove_brackets)
+            _ANIME_NAME=$("$_FZF" -1 <<< "$(remove_slug < "$_ANIME_LIST_FILE")")
+            _ANIME_SLUG="$(get_slug_from_name "$_ANIME_NAME")"
         fi
     fi
 
     [[ "$_ANIME_SLUG" == "" ]] && print_error "Anime slug not found!"
     _ANIME_NAME=$(grep "$_ANIME_SLUG" "$_ANIME_LIST_FILE" \
         | tail -1 \
-        | awk -F '] ' '{print $2}' \
+        | remove_slug \
         | sed -E 's/[^[:alnum:] ,\+\-\)\(]/_/g')
 
     if [[ "$_ANIME_NAME" == "" ]]; then
