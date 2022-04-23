@@ -376,7 +376,7 @@ remove_slug() {
 
 get_slug_from_name() {
     # $1: anime name
-    grep "] $1" "$_ANIME_LIST_FILE" | head -1 | remove_brackets
+    grep "] $1" "$_ANIME_LIST_FILE" | tail -1 | remove_brackets
 }
 
 main() {
