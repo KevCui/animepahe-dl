@@ -120,7 +120,7 @@ get() {
 download_anime_list() {
     get "$_ANIME_URL" \
     | grep "/anime/" \
-    | sed -E 's/.*anime\//[/;s/" title="/] /;s/\">.*//' \
+    | sed -E 's/.*anime\//[/;s/" title="/] /;s/\">.*/   /' \
     > "$_ANIME_LIST_FILE"
 }
 
@@ -132,7 +132,7 @@ search_anime_by_name() {
     if [[ "$n" -eq "0" ]]; then
         echo ""
     else
-        "$_JQ" -r '.data[] | "[\(.session)] \(.title)"' <<< "$d" \
+        "$_JQ" -r '.data[] | "[\(.session)] \(.title)   "' <<< "$d" \
             | tee -a "$_ANIME_LIST_FILE" \
             | remove_slug
     fi
