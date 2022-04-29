@@ -398,6 +398,7 @@ main() {
     _ANIME_NAME="$(grep "$_ANIME_SLUG" "$_ANIME_LIST_FILE" \
         | tail -1 \
         | remove_slug \
+        | sed -E 's/[[:space:]]+$//' \
         | sed -E 's/[^[:alnum:] ,\+\-\)\(]/_/g')"
 
     if [[ "$_ANIME_NAME" == "" ]]; then
