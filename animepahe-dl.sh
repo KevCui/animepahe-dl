@@ -313,8 +313,7 @@ decrypt_segments() {
     export _OPENSSL k
     export -f decrypt_file
     xargs -I {} -P "$(get_thread_number "$1")" \
-        bash -c 'decrypt_file "{}" "$k"' < <(ls "${2}/"*.ts.encrypted \
-        | sed -E 's/ /\\ /g')
+        bash -c 'decrypt_file "{}" "$k"' < <(ls "${2}/"*.ts.encrypted)
 }
 
 download_episode() {
