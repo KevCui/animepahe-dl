@@ -194,15 +194,14 @@ get_episode_link() {
 get_playlist_link() {
     # $1: episode link
     local s l
-    s=$("$_CURL" --compressed -sS -H "Referer: $_REFERER_URL" "$1" \
-        | grep '<script>' \
-        | grep 'eval(function' \
-        | sed -E 's/<script>//')
+    s="$("$_CURL" --compressed -sS -H "Referer: $_REFERER_URL" "$1" \
+        | grep "<script>eval(" \
+        | awk -F 'script>' '{print $2}')"
 
-    l=$("$_NODE" -e "$s" 2>&1 \
+    l="$("$_NODE" -e "$s" 2>&1 \
         | grep 'source=' \
         | sed -E "s/.m3u8';.*/.m3u8/" \
-        | sed -E "s/.*const source='//")
+        | sed -E "s/.*const source='//")"
 
     echo "$l"
 }
