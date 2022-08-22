@@ -33,7 +33,6 @@ set_var() {
     _JQ="$(command -v jq)" || command_not_found "jq"
     _FZF="$(command -v fzf)" || command_not_found "fzf"
     _NODE="$(command -v node)" || command_not_found "node"
-    [[ "$_NODE" == *"alias "* ]] && _NODE="$(sed -E "s/.*='//;s/'$//" <<< "$_NODE")"
     _FFMPEG="$(command -v ffmpeg)" || command_not_found "ffmpeg"
     if [[ ${_PARALLEL_JOBS:-} -gt 1 ]]; then
        _OPENSSL="$(command -v openssl)" || command_not_found "openssl"
