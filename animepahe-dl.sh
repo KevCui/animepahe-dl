@@ -167,9 +167,8 @@ download_source() {
 get_episode_link() {
     # $1: episode number
     local i s d r=""
-    i=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .anime_id' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     s=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .session' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
-    [[ "$i" == "" ]] && print_warn "Episode $1 not found!" && return
+    [[ "$s" == "" ]] && print_warn "Episode $1 not found!" && return
     d="$(get "${_API_URL}?m=links&id=${s}&p=kwik" | "$_JQ" -r '.data[]')"
 
     if [[ -n "${_ANIME_AUDIO:-}" ]]; then
