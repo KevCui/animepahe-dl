@@ -169,7 +169,7 @@ get_episode_link() {
     local s d r=""
     s=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .session' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     [[ "$s" == "" ]] && print_warn "Episode $1 not found!" && return
-    d="$(get "${_API_URL}?m=links&id=${s}&p=kwik" | "$_JQ" -r '.data[]')"
+    d="$(get "${_API_URL}?m=links&id=${s}&p=kwik" | "$_JQ" -r '.data[] | select(.[].av1 == 0)')"
 
     if [[ -n "${_ANIME_AUDIO:-}" ]]; then
         print_info "Select audio language: $_ANIME_AUDIO"
