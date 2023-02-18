@@ -191,7 +191,10 @@ get_episode_link() {
         fi
     fi
 
-    "$_JQ" -r '.[].kwik' <<< "$d" | tail -1
+    "$_CURL" --compressed -sSL "${_HOST}/play/${_ANIME_SLUG}/${s}" \
+        | grep url \
+        | grep kwik \
+        | awk -F '"' '{print $2}'
 }
 
 get_playlist_link() {
