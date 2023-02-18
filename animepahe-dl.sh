@@ -166,35 +166,36 @@ download_source() {
 
 get_episode_link() {
     # $1: episode number
-    local s d r=""
+    local s o l r=""
     s=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .session' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     [[ "$s" == "" ]] && print_warn "Episode $1 not found!" && return
-    d="$(get "${_API_URL}?m=links&id=${s}&p=kwik" | "$_JQ" -r '.data[] | select(.[].av1 == 0)')"
+    o="$("$_CURL" --compressed -sSL "${_HOST}/play/${_ANIME_SLUG}/${s}")"
+    l="$(grep \<button <<< "$o" \
+        | grep data-src \
+        | sed -E 's/data-src="/\n/g' \
+        | grep 'data-av1="0"')"
 
     if [[ -n "${_ANIME_AUDIO:-}" ]]; then
         print_info "Select audio language: $_ANIME_AUDIO"
-        r="$("$_JQ" -r '.[] |= select(.audio == "'"$_ANIME_AUDIO"'") | select(.[] != null)' <<< "$d")"
-        if [[ -n "${r:-}" ]]; then
-            d="$r"
-        else
+        r="$(grep 'data-audio="'"$_ANIME_AUDIO"'"' <<< "$l")"
+        if [[ -z "${r:-}" ]]; then
             print_warn "Selected audio language is not available, fallback to default."
         fi
     fi
 
     if [[ -n "${_ANIME_RESOLUTION:-}" ]]; then
         print_info "Select video resolution: $_ANIME_RESOLUTION"
-        r="$("$_JQ" -r 'to_entries | .[] |= select(.key == "'"$_ANIME_RESOLUTION"'") | from_entries | select(.[] != null)' <<< "$d")"
-        if [[ -n "${r:-}" ]]; then
-            d="$r"
-        else
+        r="$(grep 'data-resolution="'"$_ANIME_RESOLUTION"'"' <<< "${r:-$l}")"
+        if [[ -z "${r:-}" ]]; then
             print_warn "Selected video resolution is not available, fallback to default"
         fi
     fi
 
-    "$_CURL" --compressed -sSL "${_HOST}/play/${_ANIME_SLUG}/${s}" \
-        | grep url \
-        | grep kwik \
-        | awk -F '"' '{print $2}'
+    if [[ -z "${r:-}" ]]; then
+        grep url <<< "$o" | grep kwik | awk -F '"' '{print $2}'
+    else
+        awk -F '" ' '{print $1}' <<< "$r" | head -1
+    fi
 }
 
 get_playlist_link() {
