@@ -192,7 +192,7 @@ get_episode_link() {
     fi
 
     if [[ -z "${r:-}" ]]; then
-        grep url <<< "$o" | grep kwik | awk -F '"' '{print $2}'
+        grep kwik <<< "$l" | tail -1 | grep kwik | awk -F '"' '{print $1}'
     else
         awk -F '" ' '{print $1}' <<< "$r" | head -1
     fi
