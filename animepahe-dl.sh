@@ -194,7 +194,7 @@ get_episode_link() {
     if [[ -z "${r:-}" ]]; then
         grep kwik <<< "$l" | tail -1 | grep kwik | awk -F '"' '{print $1}'
     else
-        awk -F '" ' '{print $1}' <<< "$r" | head -1
+        awk -F '" ' '{print $1}' <<< "$r" | tail -1
     fi
 }
 
