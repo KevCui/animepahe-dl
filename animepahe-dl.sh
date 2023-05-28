@@ -124,7 +124,7 @@ get() {
 download_anime_list() {
     get "$_ANIME_URL" \
     | grep "/anime/" \
-    | sed -E 's/.*anime\//[/;s/" title="/] /;s/\">.*/   /' \
+    | sed -E 's/.*anime\//[/;s/" title="/] /;s/\">.*/   /;s/" title/]/' \
     > "$_ANIME_LIST_FILE"
 }
 
