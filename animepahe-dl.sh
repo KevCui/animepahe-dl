@@ -121,12 +121,11 @@ get() {
     "$_CURL" -sS -L "$1" -H "cookie: $_COOKIE" --compressed
 }
 
-get_cookie() {
+set_cookie() {
     local u
     u="$("$_CURL" -sS -L "$_HOST" \
     | awk -F 'uuid=' '{print $2}' \
-    | awk -F ';' '{print $1}' \
-    | head -1)"
+    | awk -F ';' '{print $1}')"
     _COOKIE="uuid=$u"
 }
 
@@ -399,7 +398,7 @@ get_slug_from_name() {
 main() {
     set_args "$@"
     set_var
-    get_cookie
+    set_cookie
 
     if [[ -n "${_INPUT_ANIME_NAME:-}" ]]; then
         _ANIME_NAME=$("$_FZF" -1 <<< "$(search_anime_by_name "$_INPUT_ANIME_NAME")")
