@@ -42,7 +42,7 @@ set_var() {
        _OPENSSL="$(command -v openssl)" || command_not_found "openssl"
     fi
 
-    _HOST="https://animepahe.com"
+    _HOST="https://animepahe.ru"
     _ANIME_URL="$_HOST/anime"
     _API_URL="$_HOST/api"
     _REFERER_URL="https://kwik.cx/"
@@ -118,7 +118,16 @@ command_not_found() {
 
 get() {
     # $1: url
-    "$_CURL" -sS -L "$1" --compressed
+    "$_CURL" -sS -L "$1" -H "cookie: $_COOKIE" --compressed
+}
+
+get_cookie() {
+    local u
+    u="$("$_CURL" -sS -L "$_HOST" \
+    | awk -F 'uuid=' '{print $2}' \
+    | awk -F ';' '{print $1}' \
+    | head -1)"
+    _COOKIE="uuid=$u"
 }
 
 download_anime_list() {
@@ -169,7 +178,7 @@ get_episode_link() {
     local s o l r=""
     s=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .session' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     [[ "$s" == "" ]] && print_warn "Episode $1 not found!" && return
-    o="$("$_CURL" --compressed -sSL "${_HOST}/play/${_ANIME_SLUG}/${s}")"
+    o="$("$_CURL" --compressed -sSL -H "cookie: $_COOKIE" "${_HOST}/play/${_ANIME_SLUG}/${s}")"
     l="$(grep \<button <<< "$o" \
         | grep data-src \
         | sed -E 's/data-src="/\n/g' \
@@ -201,7 +210,7 @@ get_episode_link() {
 get_playlist_link() {
     # $1: episode link
     local s l
-    s="$("$_CURL" --compressed -sS -H "Referer: $_REFERER_URL" "$1" \
+    s="$("$_CURL" --compressed -sS -H "Referer: $_REFERER_URL" -H "cookie: $_COOKIE" "$1" \
         | grep "<script>eval(" \
         | awk -F 'script>' '{print $2}'\
         | sed -E 's/document/process/g' \
@@ -274,7 +283,7 @@ download_file() {
     # $1: URL link
     # $2: output file
     local s
-    s=$("$_CURL" -sS -H "Referer: $_REFERER_URL" -C - "$1" -L -g -o "$2" \
+    s=$("$_CURL" -sS -H "Referer: $_REFERER_URL" -H "cookie: $_COOKIE" -C - "$1" -L -g -o "$2" \
         --connect-timeout 5 \
         --compressed \
         || echo "$?")
@@ -390,6 +399,7 @@ get_slug_from_name() {
 main() {
     set_args "$@"
     set_var
+    get_cookie
 
     if [[ -n "${_INPUT_ANIME_NAME:-}" ]]; then
         _ANIME_NAME=$("$_FZF" -1 <<< "$(search_anime_by_name "$_INPUT_ANIME_NAME")")
