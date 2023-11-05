@@ -17,8 +17,18 @@
 - [jq](https://stedolan.github.io/jq/)
 - [fzf](https://github.com/junegunn/fzf)
 - [Node.js](https://nodejs.org/en/download/)
+- [selenium-webdriver](https://www.npmjs.com/package/selenium-webdriver): To handle cloudflare ddos protection 
 - [ffmpeg](https://ffmpeg.org/download.html)
 - [openssl](https://www.openssl.org/source/): optional, needed when using `-t <num>` for faster download
+
+### Example install commands on Ubuntu
+
+```
+sudo apt-get install jq fzf ffmpeg nodejs
+sudo npm install -g selenium-webdriver
+```
+
+openssl is mostly installed by default on most systems and is not recommended to change the system package
 
 ## How to use
 

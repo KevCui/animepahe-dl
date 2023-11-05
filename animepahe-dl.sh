@@ -41,7 +41,11 @@ set_var() {
     if [[ ${_PARALLEL_JOBS:-} -gt 1 ]]; then
        _OPENSSL="$(command -v openssl)" || command_not_found "openssl"
     fi
+    if ! (npm list selenium-webdriver >/dev/null 2>&1 || npm list -g selenium-webdriver 2>&1 >/dev/null); then
+        print_error "selenium-webdriver not found!"
+    fi
 
+    export NODE_PATH=$(npm root -g);
     _HOST="https://animepahe.com"
     _ANIME_URL="$_HOST/anime"
     _API_URL="$_HOST/api"
@@ -50,6 +54,36 @@ set_var() {
     _SCRIPT_PATH=$(dirname "$(realpath "$0")")
     _ANIME_LIST_FILE="$_SCRIPT_PATH/anime.list"
     _SOURCE_FILE=".source.json"
+    _SELENIUM_FETCH=$(cat << EOT
+    const { Builder, By, until } = require('selenium-webdriver');
+    const chrome = require('selenium-webdriver/chrome');
+    const fs = require('fs');
+    (async function scrape() {
+      let options = new chrome.Options();
+      options.addArguments('--disable-notifications');
+      options.addArguments('--headless');
+      let driver = await new Builder().forBrowser('chrome').setChromeOptions(options).build();
+      try {
+        await driver.get(process.argv[1]);
+        await driver.wait(async () => await driver.executeScript('return document.readyState') == 'complete', 60*1000);
+        fs.writeFileSync('session.json', JSON.stringify({
+          cookies: (await driver.manage().getCookies()).map(cookie => [cookie.name, cookie.value]),
+          useragent: await driver.executeScript('return navigator.userAgent;')
+        }, null, 4));
+        const source = await driver.getPageSource();
+        if ((m=source.match(/<html><head><meta[^>]+><\/head><body><pre[^>]+>(.*)<\/pre><\/body><\/html>/))) { // looks like a api call but source wrapped it inside html
+            console.log(m[1])
+        } else {
+            console.log(source)
+        }
+      } catch (error) {
+        console.error('An error occurred:', error);
+      } finally {
+        await driver.quit();
+      }
+    })();
+EOT
+)
 }
 
 set_args() {
@@ -118,7 +152,19 @@ command_not_found() {
 
 get() {
     # $1: url
-    "$_CURL" -sS -L "$1" --compressed
+    extra=""
+    if [[ -f session.json ]]; then
+        extra="-A \"$(jq -r '.useragent' < session.json)\" -b \"$(jq -r '.cookies | map("\(.[0])=\(.[1])") | join(";")' < session.json)\""
+    fi
+    resp=$(eval "\"$_CURL\" $extra -sS -L \"$1\" --compressed")
+    if grep -q "https://animepaheru.cloudfire.quest" <<< "$resp"; then
+        print_warn "Cloudflare blocked request. Retrying via selenium"
+        resp=$("$_NODE" -e "$_SELENIUM_FETCH" "$1")
+        if [[ $? -ne 0 ]]; then
+            print_error "Selenium fetch failed"
+        fi
+    fi
+    echo "$resp"
 }
 
 download_anime_list() {
@@ -169,7 +215,7 @@ get_episode_link() {
     local s o l r=""
     s=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .session' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     [[ "$s" == "" ]] && print_warn "Episode $1 not found!" && return
-    o="$("$_CURL" --compressed -sSL "${_HOST}/play/${_ANIME_SLUG}/${s}")"
+    o="$(get "${_HOST}/play/${_ANIME_SLUG}/${s}")"
     l="$(grep \<button <<< "$o" \
         | grep data-src \
         | sed -E 's/data-src="/\n/g' \
