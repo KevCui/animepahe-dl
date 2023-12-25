@@ -336,7 +336,8 @@ decrypt_segments() {
 download_episode() {
     # $1: episode number
     local num="$1" l pl erropt='' v
-    v="$_SCRIPT_PATH/${_ANIME_NAME}/${num}.mp4"
+    formatted_num=$(printf "%02d" "$num")
+    v="$_SCRIPT_PATH/${_ANIME_NAME}/${_ANIME_NAME} - ${formatted_num}.mp4"
 
     l=$(get_episode_link "$num")
     [[ "$l" != *"/"* ]] && print_warn "Wrong download link or episode $1 not found!" && return
