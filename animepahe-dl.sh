@@ -123,10 +123,8 @@ get() {
 
 set_cookie() {
     local u
-    u="$("$_CURL" -sS -L "$_HOST" \
-    | awk -F 'uuid=' '{print $2}' \
-    | awk -F ';' '{print $1}')"
-    _COOKIE="uuid=$u"
+    u="$(LC_ALL=C tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 16)"
+    _COOKIE="__ddg2_=$u"
 }
 
 download_anime_list() {
