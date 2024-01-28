@@ -45,7 +45,7 @@ set_var() {
     _HOST="https://animepahe.ru"
     _ANIME_URL="$_HOST/anime"
     _API_URL="$_HOST/api"
-    _REFERER_URL="https://kwik.cx/"
+    _REFERER_URL="$_HOST"
 
     _SCRIPT_PATH=$(dirname "$(realpath "$0")")
     _ANIME_LIST_FILE="$_SCRIPT_PATH/anime.list"
