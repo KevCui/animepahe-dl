@@ -333,7 +333,7 @@ decrypt_segments() {
 
 download_episode() {
     # $1: episode number
-    local num="$1" l pl erropt='' v
+    local num="$1" l pl v erropt='' extpicky=''
     v="$_SCRIPT_PATH/${_ANIME_NAME}/${num}.mp4"
 
     l=$(get_episode_link "$num")
@@ -344,7 +344,12 @@ download_episode() {
 
     if [[ -z ${_LIST_LINK_ONLY:-} ]]; then
         print_info "Downloading Episode $1..."
+
         [[ -z "${_DEBUG_MODE:-}" ]] && erropt="-v error"
+        if ffmpeg -h full 2>/dev/null| grep extension_picky >/dev/null; then
+            extpicky="-extension_picky 0"
+        fi
+
         if [[ ${_PARALLEL_JOBS:-} -gt 1 ]]; then
             local opath plist cpath fname
             fname="file.list"
@@ -361,11 +366,11 @@ download_episode() {
             generate_filelist "$plist" "${opath}/$fname"
 
             ! cd "$opath" && print_warn "Cannot change directory to $opath" && return
-            "$_FFMPEG" -extension_picky 0 -f concat -safe 0 -i "$fname" -c copy $erropt -y "$v"
+            "$_FFMPEG" $extpicky -f concat -safe 0 -i "$fname" -c copy $erropt -y "$v"
             ! cd "$cpath" && print_warn "Cannot change directory to $cpath" && return
             [[ -z "${_DEBUG_MODE:-}" ]] && rm -rf "$opath" || return 0
         else
-            "$_FFMPEG" -extension_picky 0 -headers "Referer: $_REFERER_URL" -i "$pl" -c copy $erropt -y "$v"
+            "$_FFMPEG" $extpicky -headers "Referer: $_REFERER_URL" -i "$pl" -c copy $erropt -y "$v"
         fi
     else
         echo "$pl"
