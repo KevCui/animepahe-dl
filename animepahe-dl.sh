@@ -366,7 +366,7 @@ download_episode() {
             generate_filelist "$plist" "${opath}/$fname"
 
             ! cd "$opath" && print_warn "Cannot change directory to $opath" && return
-            "$_FFMPEG" $extpicky -f concat -safe 0 -i "$fname" -c copy $erropt -y "$v"
+            "$_FFMPEG" -f concat -safe 0 -i "$fname" -c copy $erropt -y "$v"
             ! cd "$cpath" && print_warn "Cannot change directory to $cpath" && return
             [[ -z "${_DEBUG_MODE:-}" ]] && rm -rf "$opath" || return 0
         else
