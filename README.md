@@ -27,8 +27,8 @@ Usage:
   ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-r <resolution>] [-t <num>] [-l] [-d]
 
 Options:
-  -a <name>               anime name
-  -s <slug>               anime slug/uuid, can be found in $_ANIME_LIST_FILE
+  -a <name>               anime name(s), comma-separated for multiple animes
+  -s <slug>               anime slug(s)/uuid(s), comma-separated for multiple animes, can be found in $_ANIME_LIST_FILE
                           ignored when "-a" is enabled
   -e <num1,num3-num4...>  optional, episode number to download
                           multiple episode numbers seperated by ","
@@ -60,10 +60,34 @@ $ ./animepahe-dl.sh -a 'attack on titan'
 <anime list in fzf>
 ```
 
+- Download multiple animes sequentially:
+
+```bash
+$ ./animepahe-dl.sh -a "Evangelion 2.0 You Can (Not) Advance,Evangelion 3.0 You Can (Not) Redo" -e "*"
+[INFO] Processing anime: Evangelion 2.0 You Can (Not) Advance
+[INFO] Downloading Episode 1 for Evangelion 2.0 You Can (Not) Advance...
+...
+[INFO] Processing anime: Evangelion 3.0 You Can (Not) Redo
+[INFO] Downloading Episode 1 for Evangelion 3.0 You Can (Not) Redo...
+...
+```
+
 - By default, anime slug/uuid is stored in `./anime.list` file. Be aware that the value of anime slug/uuid often changes, not permanent. Download "One Punch Man" season 2 episode 3:
 
 ```bash
 $ ./animepahe-dl.sh -s 308f5756-6715-e404-998d-92f16b9d9858 -e 3
+```
+
+- Download multiple animes sequentially using slug/uuid:
+
+```bash
+$ ./animepahe-dl.sh -s "48fe2bea-2635-b8ef-fdc8-28f58e397fe3,351863a2-86e3-72ac-39e3-8300687145e4" -e "*"
+[INFO] Processing anime by slug/uuid: 48fe2bea-2635-b8ef-fdc8-28f58e397fe3
+[INFO] Downloading Episode 1 for <Anime Name corresponding to 48fe2bea-2635-b8ef-fdc8-28f58e397fe3>...
+...
+[INFO] Processing anime by slug/uuid: 351863a2-86e3-72ac-39e3-8300687145e4
+[INFO] Downloading Episode 1 for <Anime Name corresponding to 351863a2-86e3-72ac-39e3-8300687145e4>...
+...
 ```
 
 - List "One Punch Man" season 2 all episodes:

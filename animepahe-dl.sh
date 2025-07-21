@@ -6,8 +6,8 @@
 #/   ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-r <resolution>] [-t <num>] [-l] [-d]
 #/
 #/ Options:
-#/   -a <name>               anime name
-#/   -s <slug>               anime slug/uuid, can be found in $_ANIME_LIST_FILE
+#/   -a <name>               anime name(s), comma-separated for multiple animes
+#/   -s <slug>               anime slug(s)/uuid(s), comma-separated for multiple animes, can be found in $_ANIME_LIST_FILE
 #/                           ignored when "-a" is enabled
 #/   -e <num1,num3-num4...>  optional, episode number to download
 #/                           multiple episode numbers seperated by ","
@@ -58,10 +58,11 @@ set_args() {
     while getopts ":hlda:s:e:r:t:o:" opt; do
         case $opt in
             a)
-                _INPUT_ANIME_NAME="$OPTARG"
+                IFS=',' read -ra _INPUT_ANIME_NAMES <<< "$OPTARG"
                 ;;
             s)
-                _ANIME_SLUG="$OPTARG"
+                # Allow comma-separated anime slugs
+                IFS=',' read -ra _INPUT_ANIME_SLUGS <<< "$OPTARG"
                 ;;
             e)
                 _ANIME_EPISODE="$OPTARG"
@@ -337,13 +338,13 @@ download_episode() {
     v="$_SCRIPT_PATH/${_ANIME_NAME}/${num}.mp4"
 
     l=$(get_episode_link "$num")
-    [[ "$l" != *"/"* ]] && print_warn "Wrong download link or episode $1 not found!" && return
+    [[ "$l" != *"/"* ]] && print_warn "Episode $1 not found!" && return
 
     pl=$(get_playlist_link "$l")
     [[ -z "${pl:-}" ]] && print_warn "Missing video list! Skip downloading!" && return
 
     if [[ -z ${_LIST_LINK_ONLY:-} ]]; then
-        print_info "Downloading Episode $1..."
+        print_info "Downloading Episode $1 for $_ANIME_NAME..."
 
         [[ -z "${_DEBUG_MODE:-}" ]] && erropt="-v error"
         if ffmpeg -h full 2>/dev/null| grep extension_picky >/dev/null; then
@@ -380,7 +381,7 @@ download_episode() {
 select_episodes_to_download() {
     [[ "$(grep 'data' -c "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")" -eq "0" ]] && print_error "No episode available!"
     "$_JQ" -r '.data[] | "[\(.episode | tonumber)] E\(.episode | tonumber) \(.created_at)"' "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE" >&2
-    echo -n "Which episode(s) to download: " >&2
+    echo -n "Which episode(s) to download for $_ANIME_NAME: " >&2
     read -r s
     echo "$s"
 }
@@ -403,34 +404,128 @@ main() {
     set_var
     set_cookie
 
-    if [[ -n "${_INPUT_ANIME_NAME:-}" ]]; then
-        _ANIME_NAME=$("$_FZF" -1 <<< "$(search_anime_by_name "$_INPUT_ANIME_NAME")")
-        _ANIME_SLUG="$(get_slug_from_name "$_ANIME_NAME")"
-    else
-        download_anime_list
-        if [[ -z "${_ANIME_SLUG:-}" ]]; then
-            _ANIME_NAME=$("$_FZF" -1 <<< "$(remove_slug < "$_ANIME_LIST_FILE")")
+    local current_anime_name current_anime_slug processed_animes=false
+
+    # Handle batch processing by name
+    if [[ -n "${_INPUT_ANIME_NAMES:-}" ]]; then
+        for current_anime_name in "${_INPUT_ANIME_NAMES[@]}"; do
+            print_info "Processing anime by name: $current_anime_name"
+            _ANIME_NAME=$("$_FZF" -1 <<< "$(search_anime_by_name "$current_anime_name")")
             _ANIME_SLUG="$(get_slug_from_name "$_ANIME_NAME")"
+
+            if [[ "$_ANIME_SLUG" == "" ]]; then
+                print_warn "Anime slug for '$current_anime_name' not found! Skipping."
+                continue
+            fi
+
+            _ANIME_NAME="$(grep "$_ANIME_SLUG" "$_ANIME_LIST_FILE" \
+                | tail -1 \
+                | remove_slug \
+                | sed -E 's/[[:space:]]+$//' \
+                | sed -E 's/[^[:alnum:] ,\+\-\)\(]/_/g')"
+
+            if [[ "$_ANIME_NAME" == "" ]]; then
+                print_warn "Anime name for '$current_anime_name' not found after slug lookup! Skipping."
+                download_anime_list # Re-download list in case it's outdated
+                continue
+            fi
+
+            download_source
+
+            local episode_to_download="${_ANIME_EPISODE:-}"
+            if [[ -z "$episode_to_download" ]]; then
+                episode_to_download=$(select_episodes_to_download)
+            fi
+            download_episodes "$episode_to_download"
+            processed_animes=true
+        done
+    fi
+
+    # Handle batch processing by slug/uuid
+    if [[ -n "${_INPUT_ANIME_SLUGS:-}" && "$processed_animes" == "false" ]]; then
+        # Ensure -a is not used if -s is used for batch, or vice versa
+        if [[ -n "${_INPUT_ANIME_NAMES:-}" ]]; then
+            print_error "Cannot use -a (anime name) and -s (anime slug) simultaneously for batch downloads."
         fi
+
+        for current_anime_slug in "${_INPUT_ANIME_SLUGS[@]}"; do
+            print_info "Processing anime by slug/uuid: $current_anime_slug"
+            _ANIME_SLUG="$current_anime_slug"
+
+            # Try to get anime name from slug if possible for directory naming
+            # If not found, use slug as fallback name
+            _ANIME_NAME="$(grep "$_ANIME_SLUG" "$_ANIME_LIST_FILE" \
+                | tail -1 \
+                | remove_slug \
+                | sed -E 's/[[:space:]]+$//' \
+                | sed -E 's/[^[:alnum:] ,\+\-\)\(]/_/g')"
+
+            if [[ -z "$_ANIME_NAME" ]]; then
+                # If slug isn't in anime.list, just use the slug as the name
+                print_warn "Anime name not found for slug '$current_anime_slug'. Using slug as directory name."
+                _ANIME_NAME="$_ANIME_SLUG"
+            fi
+
+            download_source
+
+            local episode_to_download="${_ANIME_EPISODE:-}"
+            if [[ -z "$episode_to_download" ]]; then
+                episode_to_download=$(select_episodes_to_download)
+            fi
+            download_episodes "$episode_to_download"
+            processed_animes=true
+        done
     fi
 
-    [[ "$_ANIME_SLUG" == "" ]] && print_error "Anime slug not found!"
-    _ANIME_NAME="$(grep "$_ANIME_SLUG" "$_ANIME_LIST_FILE" \
-        | tail -1 \
-        | remove_slug \
-        | sed -E 's/[[:space:]]+$//' \
-        | sed -E 's/[^[:alnum:] ,\+\-\)\(]/_/g')"
 
-    if [[ "$_ANIME_NAME" == "" ]]; then
-        print_warn "Anime name not found! Try again."
-        download_anime_list
-        exit 1
+    # Original single anime logic (if no batch processing was done)
+    if [[ "$processed_animes" == "false" ]]; then
+        if [[ -n "${_INPUT_ANIME_NAME:-}" ]]; then
+            _ANIME_NAME=$("$_FZF" -1 <<< "$(search_anime_by_name "$_INPUT_ANIME_NAME")")
+            _ANIME_SLUG="$(get_slug_from_name "$_ANIME_NAME")"
+        elif [[ -n "${_ANIME_SLUG:-}" ]]; then # Handle single slug if no -a
+            # This is the original path for a single -s argument
+            _ANIME_SLUG_SINGLE_ARG="$_ANIME_SLUG" # Store original single slug to avoid conflict with array
+            _ANIME_NAME="$(grep "$_ANIME_SLUG_SINGLE_ARG" "$_ANIME_LIST_FILE" \
+                | tail -1 \
+                | remove_slug \
+                | sed -E 's/[[:space:]]+$//' \
+                | sed -E 's/[^[:alnum:] ,\+\-\)\(]/_/g')"
+
+            if [[ -z "$_ANIME_NAME" ]]; then
+                print_warn "Anime name not found for slug '$_ANIME_SLUG_SINGLE_ARG'. Using slug as directory name."
+                _ANIME_NAME="$_ANIME_SLUG_SINGLE_ARG"
+            fi
+            _ANIME_SLUG="$_ANIME_SLUG_SINGLE_ARG" # Restore _ANIME_SLUG for download_source
+        else
+            download_anime_list
+            if [[ -z "${_ANIME_SLUG:-}" ]]; then
+                _ANIME_NAME=$("$_FZF" -1 <<< "$(remove_slug < "$_ANIME_LIST_FILE")")
+                _ANIME_SLUG="$(get_slug_from_name "$_ANIME_NAME")"
+            fi
+        fi
+
+        [[ "$_ANIME_SLUG" == "" ]] && print_error "Anime slug not found!"
+        # This part handles the case where _ANIME_NAME might still be empty after FZF selection or slug lookup for a single anime
+        if [[ -z "$_ANIME_NAME" ]]; then
+            _ANIME_NAME="$(grep "$_ANIME_SLUG" "$_ANIME_LIST_FILE" \
+                | tail -1 \
+                | remove_slug \
+                | sed -E 's/[[:space:]]+$//' \
+                | sed -E 's/[^[:alnum:] ,\+\-\)\(]/_/g')"
+        fi
+
+        if [[ "$_ANIME_NAME" == "" ]]; then
+            print_warn "Anime name not found! Try again."
+            download_anime_list
+            exit 1
+        fi
+
+        download_source
+
+        [[ -z "${_ANIME_EPISODE:-}" ]] && _ANIME_EPISODE=$(select_episodes_to_download)
+        download_episodes "$_ANIME_EPISODE"
     fi
-
-    download_source
-
-    [[ -z "${_ANIME_EPISODE:-}" ]] && _ANIME_EPISODE=$(select_episodes_to_download)
-    download_episodes "$_ANIME_EPISODE"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
