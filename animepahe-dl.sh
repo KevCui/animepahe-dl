@@ -42,7 +42,7 @@ set_var() {
        _OPENSSL="$(command -v openssl)" || command_not_found "openssl"
     fi
 
-    _HOST="https://animepahe.ru"
+    _HOST="https://animepahe.si"
     _ANIME_URL="$_HOST/anime"
     _API_URL="$_HOST/api"
     _REFERER_URL="$_HOST"
