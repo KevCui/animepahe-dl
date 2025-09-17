@@ -280,7 +280,7 @@ download_file() {
     # $1: URL link
     # $2: output file
     local s
-    s=$("$_CURL" -sS -H "Referer: $_REFERER_URL" -H "cookie: $_COOKIE" -C - "$1" -L -g -o "$2" \
+    s=$("$_CURL" -k -sS -H "Referer: $_REFERER_URL" -H "cookie: $_COOKIE" -C - "$1" -L -g -o "$2" \
         --connect-timeout 5 \
         --compressed \
         || echo "$?")
