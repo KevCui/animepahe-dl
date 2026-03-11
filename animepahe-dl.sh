@@ -55,6 +55,7 @@ set_var() {
 set_args() {
     expr "$*" : ".*--help" > /dev/null && usage
     _PARALLEL_JOBS=1
+    _DEFAULT_ANIME_RESOLUTION="1080"
     while getopts ":hlda:s:e:r:t:o:" opt; do
         case $opt in
             a)
@@ -190,36 +191,41 @@ get_episode_link() {
     fi
 
     if [[ -n "${_ANIME_RESOLUTION:-}" ]]; then
-        print_info "Select video resolution: $_ANIME_RESOLUTION"
+        print_info "Select video resolution: ${_ANIME_RESOLUTION}p"
         r="$(grep 'data-resolution="'"$_ANIME_RESOLUTION"'"' <<< "${r:-$l}")"
         if [[ -z "${r:-}" ]]; then
-            print_warn "Selected video resolution is not available, fallback to default"
+            print_warn "Selected video resolution is not available, fallback to default ${_DEFAULT_ANIME_RESOLUTION}p."
         fi
     fi
 
     if [[ -z "${r:-}" ]]; then
-        grep kwik <<< "$l" | tail -1 | grep kwik | awk -F '"' '{print $1}'
+        grep kwik <<< "$l" | grep kwik | grep "$_DEFAULT_ANIME_RESOLUTION" | awk -F '"' '{print $1}'
     else
-        awk -F '" ' '{print $1}' <<< "$r" | tail -1
+        awk -F '" ' '{print $1}' <<< "$r"
     fi
 }
 
 get_playlist_link() {
     # $1: episode link
-    local s l
-    s="$("$_CURL" --compressed -sS -H "Referer: $_REFERER_URL" -H "cookie: $_COOKIE" "$1" \
-        | grep "<script>eval(" \
-        | awk -F 'script>' '{print $2}'\
-        | sed -E 's/document/process/g' \
-        | sed -E 's/querySelector/exit/g' \
-        | sed -E 's/eval\(/console.log\(/g')"
+    local s l t
+    while read -r t; do
+        s="$("$_CURL" --compressed -sS -H "Referer: $_REFERER_URL" -H "cookie: $_COOKIE" "$t" \
+            | grep "<script>eval(" \
+            | awk -F 'script>' '{print $2}'\
+            | sed -E 's/document/process/g' \
+            | sed -E 's/querySelector/exit/g' \
+            | sed -E 's/eval\(/console.log\(/g')"
 
-    l="$("$_NODE" -e "$s" \
-        | grep 'source=' \
-        | sed -E "s/.m3u8';.*/.m3u8/" \
-        | sed -E "s/.*const source='//")"
+        l="$("$_NODE" -e "$s" \
+            | grep 'source=' \
+            | sed -E "s/.m3u8';.*/.m3u8/" \
+            | sed -E "s/.*const source='//")"
 
-    echo "$l"
+        if [[ -n "${l:-}" ]]; then
+            echo "$l"
+            return
+        fi
+    done <<< "$1"
 }
 
 download_episodes() {
@@ -341,7 +347,6 @@ download_episode() {
 
     pl=$(get_playlist_link "$l")
     [[ -z "${pl:-}" ]] && print_warn "Missing video list! Skip downloading!" && return
-
     if [[ -z ${_LIST_LINK_ONLY:-} ]]; then
         print_info "Downloading Episode $1..."
 
