@@ -42,7 +42,7 @@ set_var() {
        _OPENSSL="$(command -v openssl)" || command_not_found "openssl"
     fi
 
-    _HOST="https://animepahe.pw"
+    _HOST="$(resolve_host)"
     _ANIME_URL="$_HOST/anime"
     _API_URL="$_HOST/api"
     _REFERER_URL="https://kwik.cx/"
@@ -120,6 +120,21 @@ command_not_found() {
 get() {
     # $1: url
     "$_CURL" -sS -L "$1" -H "cookie: $_COOKIE" --compressed
+}
+
+resolve_host() {
+    local actual_host base_url fallback_host
+
+    base_url="https://animepahe.com"
+    fallback_host="https://animepahe.pw"
+
+    if ! actual_host=$("$_CURL" --connect-timeout 5 -Ls -o /dev/null -w "%{url_effective}" "${base_url}"); then
+        print_warn "Could not resolve redirect, fallback to $fallback_host"
+        echo "$fallback_host"
+        return
+    fi
+
+    echo "${actual_host%/}"
 }
 
 set_cookie() {
