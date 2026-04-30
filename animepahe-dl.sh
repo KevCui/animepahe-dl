@@ -400,7 +400,7 @@ remove_slug() {
 
 get_slug_from_name() {
     # $1: anime name
-    grep "] $1" "$_ANIME_LIST_FILE" | tail -1 | remove_brackets
+    grep -F "] $1" "$_ANIME_LIST_FILE" | tail -1 | remove_brackets
 }
 
 main() {
@@ -420,7 +420,7 @@ main() {
     fi
 
     [[ "$_ANIME_SLUG" == "" ]] && print_error "Anime slug not found!"
-    _ANIME_NAME="$(grep "$_ANIME_SLUG" "$_ANIME_LIST_FILE" \
+    _ANIME_NAME="$(grep -F "$_ANIME_SLUG" "$_ANIME_LIST_FILE" \
         | tail -1 \
         | remove_slug \
         | sed -E 's/[[:space:]]+$//' \
