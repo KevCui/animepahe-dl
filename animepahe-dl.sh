@@ -46,6 +46,7 @@ set_var() {
     _ANIME_URL="$_HOST/anime"
     _API_URL="$_HOST/api"
     _REFERER_URL="https://kwik.cx/"
+    _REFERER_HOST="https://animepahe.pw/"
 
     _SCRIPT_PATH=$(dirname "$(realpath "$0")")
     _ANIME_LIST_FILE="$_SCRIPT_PATH/anime.list"
@@ -209,7 +210,7 @@ get_playlist_link() {
     # $1: episode link
     local s l t
     while read -r t; do
-        s="$("$_CURL" --compressed -sS -H "Referer: $_REFERER_URL" -H "cookie: $_COOKIE" "$t" \
+        s="$("$_CURL" --compressed -sS -H "Referer: $_REFERER_HOST" -H "cookie: $_COOKIE" "$t" \
             | grep "<script>eval(" \
             | awk -F 'script>' '{print $2}'\
             | sed -E 's/document/process/g' \
