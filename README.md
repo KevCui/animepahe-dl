@@ -15,13 +15,12 @@
 - [fzf](https://github.com/junegunn/fzf)
 - [Node.js](https://nodejs.org/en/download/)
 - [ffmpeg](https://ffmpeg.org/download.html)
-- [openssl](https://www.openssl.org/source/): optional, needed when using `-t <num>` for faster download
 
 ## How to use
 
 ```
 Usage:
-  ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-r <resolution>] [-t <num>] [-l] [-d]
+  ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-r <resolution>] [-l] [-d]
 
 Options:
   -a <name>               anime name
@@ -34,7 +33,6 @@ Options:
   -r <resolution>         optional, specify resolution: "1080", "720"...
                           by default, the highest resolution is selected
   -o <language>           optional, specify audio language: "eng", "jpn"...
-  -t <num>                optional, specify a positive integer as num of threads
   -l                      optional, show m3u8 playlist link without downloading videos
   -d                      enable debug mode
   -h | --help             display this help message
@@ -136,14 +134,6 @@ $ ./animepahe-dl.sh -a 'samurai 7' -e 1 -o eng
 [INFO] Select audio language: eng
 [INFO] Downloading Episode 1...
 ```
-
-- Enable parallel jobs to download faster:
-
-```bash
-$ ./animepahe-dl.sh -a jujutsu -e 1 -t 100
-```
-
-:warning: Be aware that the parallel download feature can be sometimes unstable, depending on the server side throttling. But usually, it should be stable with a number of threads below 50.
 
 - Show only m3u8 playlist link, without downloading video file:
 
