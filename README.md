@@ -18,6 +18,21 @@
 
 ## How to use
 
+- Configuration
+
+1. Open browser, visit https://animepahe.pw, solve Cloudflare
+2. Get **cf_clearance** cookie value, and **usre-agent** value from your browser
+3. Edit `config.json`, put your **cf_clearance** and **user-agent**, like following:
+
+```json
+{
+  "cf": "YOUR_CF_CLEARANCE",
+  "ua": "YOUR_USER_AGENT"
+}
+```
+
+- Usage
+
 ```
 Usage:
   ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-r <resolution>] [-l] [-d]

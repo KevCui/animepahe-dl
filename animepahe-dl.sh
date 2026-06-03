@@ -45,6 +45,8 @@ set_var() {
     _REFERER_HOST="https://animepahe.pw/"
 
     _SCRIPT_PATH=$(dirname "$(realpath "$0")")
+    _USER_AGENT="$("$_JQ" -r '.ua' "$_SCRIPT_PATH/config.json")"
+    _CF_CLEARANCE="$("$_JQ" -r '.cf' "$_SCRIPT_PATH/config.json")"
     _ANIME_LIST_FILE="$_SCRIPT_PATH/anime.list"
     _SOURCE_FILE=".source.json"
 }
@@ -109,13 +111,7 @@ command_not_found() {
 
 get() {
     # $1: url
-    "$_CURL" -sS -L "$1" -H "cookie: $_COOKIE" --compressed
-}
-
-set_cookie() {
-    local u
-    u="$(LC_ALL=C tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 16)"
-    _COOKIE="__ddg2_=$u"
+    "$_CURL" -sS -L "$1" -b "cf_clearance=$_CF_CLEARANCE" -A "$_USER_AGENT" --compressed
 }
 
 download_anime_list() {
@@ -166,7 +162,7 @@ get_episode_link() {
     local s o l r=""
     s=$("$_JQ" -r '.data[] | select((.episode | tonumber) == ($num | tonumber)) | .session' --arg num "$1" < "$_SCRIPT_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     [[ "$s" == "" ]] && print_warn "Episode $1 not found!" && return
-    o="$("$_CURL" --compressed -sSL -H "cookie: $_COOKIE" "${_HOST}/play/${_ANIME_SLUG}/${s}")"
+    o="$(get "${_HOST}/play/${_ANIME_SLUG}/${s}")"
     l="$(grep \<button <<< "$o" \
         | grep data-src \
         | sed -E 's/data-src="/\n/g' \
@@ -199,7 +195,7 @@ get_playlist_link() {
     # $1: episode link
     local s l t
     while read -r t; do
-        s="$("$_CURL" --compressed -sS -H "Referer: $_REFERER_HOST" -H "cookie: $_COOKIE" "$t" \
+        s="$("$_CURL" --compressed -sS -H "Referer: $_REFERER_HOST" "$t" \
             | grep "<script>eval(" \
             | awk -F 'script>' '{print $2}'\
             | sed -E 's/document/process/g' \
@@ -306,10 +302,19 @@ get_slug_from_name() {
     grep "] $1" "$_ANIME_LIST_FILE" | tail -1 | remove_brackets
 }
 
+check_config() {
+    if [[ -z "${_CF_CLEARANCE:-}" ]]; then
+        print_error "Missing cf_clearance, please add it in config.json!"
+    fi
+    if [[ -z "${_USER_AGENT:-}" ]]; then
+        print_error "Missing user-agent, please add it in config.json!"
+    fi
+}
+
 main() {
     set_args "$@"
     set_var
-    set_cookie
+    check_config
 
     if [[ -n "${_INPUT_ANIME_NAME:-}" ]]; then
         _ANIME_NAME=$("$_FZF" -1 <<< "$(search_anime_by_name "$_INPUT_ANIME_NAME")")
