@@ -197,15 +197,11 @@ get_playlist_link() {
     while read -r t; do
         s="$("$_CURL" --compressed -sS -H "Referer: $_REFERER_HOST" "$t" \
             | grep "<script>eval(" \
-            | awk -F 'script>' '{print $2}'\
-            | sed -E 's/document/process/g' \
-            | sed -E 's/querySelector/exit/g' \
-            | sed -E 's/eval\(/console.log\(/g')"
+            | awk -F 'script>' '{print $2}')"
 
-        l="$("$_NODE" -e "$s" \
-            | grep 'source=' \
-            | sed -E "s/.m3u8';.*/.m3u8/" \
-            | sed -E "s/.*const source='//")"
+        l="$("$_NODE" "$_SCRIPT_PATH/unpacker.cjs" <<< "$s" \
+            | grep -o -E 'https?://[^'\'']+\.m3u8' \
+            | head -n 1)"
 
         if [[ -n "${l:-}" ]]; then
             echo "$l"
