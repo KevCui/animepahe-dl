@@ -268,14 +268,62 @@ download_episode() {
     pl=$(get_playlist_link "$l")
     [[ -z "${pl:-}" ]] && print_warn "Missing video list! Skip downloading!" && return
     if [[ -z ${_LIST_LINK_ONLY:-} ]]; then
-        print_info "Downloading Episode $1..."
+        if [[ -n "${_DEBUG_MODE:-}" ]]; then
+            print_info "Downloading Episode $1..."
+            [[ -z "${_DEBUG_MODE:-}" ]] && erropt="-v error"
+            if ffmpeg -h full 2>/dev/null| grep extension_picky >/dev/null; then
+                extpicky="-extension_picky 0"
+            fi
+            "$_FFMPEG" $extpicky -headers "Referer: $_REFERER_URL" -i "$pl" -c copy $erropt -y "$v"
+        else
+            # Fetch total duration of the stream in seconds
+            local total_duration
+            total_duration=$("$_CURL" -sS -L -H "Referer: $_REFERER_URL" -A "$_USER_AGENT" "$pl" \
+                | grep -E "^#EXTINF:" \
+                | cut -d: -f2 \
+                | cut -d, -f1 \
+                | awk '{sum+=$1} END {printf "%d", sum}')
 
-        [[ -z "${_DEBUG_MODE:-}" ]] && erropt="-v error"
-        if ffmpeg -h full 2>/dev/null| grep extension_picky >/dev/null; then
-            extpicky="-extension_picky 0"
+            if ffmpeg -h full 2>/dev/null| grep extension_picky >/dev/null; then
+                extpicky="-extension_picky 0"
+            fi
+
+            "$_FFMPEG" $extpicky -headers "Referer: $_REFERER_URL" -progress - -i "$pl" -c copy -y "$v" 2>/dev/null | awk -v total="$total_duration" '
+                /out_time_us=/ {
+                    split($0, a, "=")
+                    us = a[2]
+                    secs = int(us / 1000000)
+                    
+                    pct = (total > 0) ? (secs * 100 / total) : 0
+                    if (pct > 100) pct = 100
+                    
+                    bar_width = 30
+                    filled = int((pct / 100) * bar_width)
+                    empty = bar_width - filled
+                    
+                    bar = ""
+                    for (i=0; i<filled; i++) bar = bar "█"
+                    for (i=0; i<empty; i++) bar = bar "░"
+                    
+                    speed_str = (speed != "") ? " [Speed: " speed "]" : ""
+                    
+                    if (total > 0) {
+                        printf "\r\033[32m[INFO]\033[0m Downloading: [%s] %d%% (%ds/%ds)%s", bar, pct, secs, total, speed_str
+                    } else {
+                        printf "\r\033[32m[INFO]\033[0m Downloading: %ds completed%s", secs, speed_str
+                    }
+                    fflush()
+                }
+                /speed=/ {
+                    split($0, a, "=")
+                    speed = a[2]
+                    gsub(/^[ \t]+|[ \t]+$/, "", speed)
+                }
+                /progress=end/ {
+                    printf "\n"
+                }
+            '
         fi
-
-        "$_FFMPEG" $extpicky -headers "Referer: $_REFERER_URL" -i "$pl" -c copy $erropt -y "$v"
     else
         echo "$pl"
     fi
