@@ -281,6 +281,16 @@ download_episodes() {
             local tmp_dir="$_SCRIPT_PATH/.tmp_progress"
             mkdir -p "$tmp_dir"
 
+            cleanup() {
+                local pids
+                pids=$(jobs -p)
+                if [[ -n "$pids" ]]; then
+                    kill $pids 2>/dev/null
+                fi
+                rm -rf "$tmp_dir" 2>/dev/null
+            }
+            trap cleanup EXIT INT TERM
+
             # Print initial space for worker bars
             for i in $(seq 1 "$W"); do
                 echo ""
@@ -302,7 +312,7 @@ download_episodes() {
                 done
             }
 
-            local -A worker_pids
+            local -a worker_pids
 
             for e in "${uniqel[@]}"; do
                 local slot=-1
@@ -343,6 +353,7 @@ download_episodes() {
 
             update_display "$W"
             rm -rf "$tmp_dir"
+            trap - EXIT INT TERM
         fi
     else
         for e in "${uniqel[@]}"; do

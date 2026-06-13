@@ -35,7 +35,7 @@
 
 ```
 Usage:
-  ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-r <resolution>] [-l] [-d]
+  ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-r <resolution>] [-w <workers>] [-l] [-d]
 
 Options:
   -a <name>               anime name
@@ -48,6 +48,7 @@ Options:
   -r <resolution>         optional, specify resolution: "1080", "720"...
                           by default, the highest resolution is selected
   -o <language>           optional, specify audio language: "eng", "jpn"...
+  -w <workers>            optional, number of concurrent download workers (default: 4)
   -l                      optional, show m3u8 playlist link without downloading videos
   -d                      enable debug mode
   -h | --help             display this help message
@@ -68,6 +69,12 @@ $ ./animepahe-dl.sh
 ```bash
 $ ./animepahe-dl.sh -a 'attack on titan'
 <anime list in fzf>
+```
+
+- Download episodes 1 to 12 concurrently using 4 workers:
+
+```bash
+$ ./animepahe-dl.sh -s 308f5756-6715-e404-998d-92f16b9d9858 -e 1-12 -w 4
 ```
 
 - By default, anime slug/uuid is stored in `./anime.list` file. Be aware that the value of anime slug/uuid often changes, not permanent. Download "One Punch Man" season 2 episode 3:
