@@ -200,9 +200,8 @@ get_playlist_link() {
             | awk -F 'script>' '{print $2}')"
 
         l="$("$_NODE" "$_SCRIPT_PATH/unpacker.cjs" <<< "$s" \
-            | grep 'source=' \
-            | sed -E "s/.m3u8';.*/.m3u8/" \
-            | sed -E "s/.*const source='//")"
+            | grep -o -E 'https?://[^'\'']+\.m3u8' \
+            | head -n 1)"
 
         if [[ -n "${l:-}" ]]; then
             echo "$l"
