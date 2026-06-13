@@ -397,25 +397,28 @@ download_episodes() {
 download_episode() {
     # $1: episode number
     # $2: optional worker slot index
-    local num="$1" slot="${2:-}" l pl v erropt='' extpicky=''
+    # $3: optional pre-resolved playlist link
+    local num="$1" slot="${2:-}" pl="${3:-}" l v erropt='' extpicky=''
     v="$_SCRIPT_PATH/${_ANIME_NAME}/${num}.mp4"
 
-    l=$(get_episode_link "$num")
-    if [[ "$l" != *"/"* ]]; then
-        print_warn "Wrong download link or episode $1 not found!"
-        if [[ -n "$slot" ]]; then
-            echo "[ERROR] Episode $num: Link not found!" > "$_SCRIPT_PATH/.tmp_progress/worker_$slot"
+    if [[ -z "$pl" ]]; then
+        l=$(get_episode_link "$num")
+        if [[ "$l" != *"/"* ]]; then
+            print_warn "Wrong download link or episode $1 not found!"
+            if [[ -n "$slot" ]]; then
+                echo "[ERROR] Episode $num: Link not found!" > "$_SCRIPT_PATH/.tmp_progress/worker_$slot"
+            fi
+            return
         fi
-        return
-    fi
 
-    pl=$(get_playlist_link "$l")
-    if [[ -z "${pl:-}" ]]; then
-        print_warn "Missing video list! Skip downloading!"
-        if [[ -n "$slot" ]]; then
-            echo "[ERROR] Episode $num: Missing video list!" > "$_SCRIPT_PATH/.tmp_progress/worker_$slot"
+        pl=$(get_playlist_link "$l")
+        if [[ -z "${pl:-}" ]]; then
+            print_warn "Missing video list! Skip downloading!"
+            if [[ -n "$slot" ]]; then
+                echo "[ERROR] Episode $num: Missing video list!" > "$_SCRIPT_PATH/.tmp_progress/worker_$slot"
+            fi
+            return
         fi
-        return
     fi
 
     if [[ -z ${_LIST_LINK_ONLY:-} ]]; then
