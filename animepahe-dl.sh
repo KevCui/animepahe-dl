@@ -268,16 +268,48 @@ download_episodes() {
             _ANIME_WORKERS=1
         fi
         
+        # 1. Resolve playlist links sequentially first to avoid Cloudflare rate-limits
+        print_info "Resolving video links sequentially to prevent Cloudflare challenges..."
+        local -a resolved_playlists
+        local -a active_episodes
+        for e in "${uniqel[@]}"; do
+            local link
+            link=$(get_episode_link "$e")
+            if [[ "$link" != *"/"* ]]; then
+                print_warn "Wrong download link or episode $e not found!"
+                continue
+            fi
+            
+            local playlist
+            playlist=$(get_playlist_link "$link")
+            if [[ -z "${playlist:-}" ]]; then
+                print_warn "Missing video list for episode $e! Skip downloading!"
+                continue
+            fi
+            
+            resolved_playlists[$e]="$playlist"
+            active_episodes+=("$e")
+        done
+
+        local total_active=${#active_episodes[@]}
+        if [[ "$total_active" -eq 0 ]]; then
+            print_error "No episodes could be resolved for download."
+        fi
+
         if [[ "$_ANIME_WORKERS" -gt "$total_eps" ]]; then
             print_error "Number of workers ($_ANIME_WORKERS) cannot be greater than the number of episodes ($total_eps)!"
         fi
 
         if [[ "$_ANIME_WORKERS" -eq 1 ]]; then
-            for e in "${uniqel[@]}"; do
-                download_episode "$e" ""
+            for e in "${active_episodes[@]}"; do
+                download_episode "$e" "" "${resolved_playlists[$e]}"
             done
         else
             local W="$_ANIME_WORKERS"
+            if [[ "$W" -gt "$total_active" ]]; then
+                W="$total_active"
+            fi
+            
             local tmp_dir="$_SCRIPT_PATH/.tmp_progress"
             mkdir -p "$tmp_dir"
 
@@ -314,7 +346,7 @@ download_episodes() {
 
             local -a worker_pids
 
-            for e in "${uniqel[@]}"; do
+            for e in "${active_episodes[@]}"; do
                 local slot=-1
                 while [[ $slot -eq -1 ]]; do
                     update_display "$W"
@@ -331,7 +363,7 @@ download_episodes() {
                 done
 
                 echo "Initializing Episode $e..." > "$tmp_dir/worker_$slot"
-                download_episode "$e" "$slot" &
+                download_episode "$e" "$slot" "${resolved_playlists[$e]}" &
                 worker_pids[$slot]=$!
             done
 
