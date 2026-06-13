@@ -296,8 +296,9 @@ download_episodes() {
             print_error "No episodes could be resolved for download."
         fi
 
-        if [[ "$_ANIME_WORKERS" -gt "$total_eps" ]]; then
-            print_error "Number of workers ($_ANIME_WORKERS) cannot be greater than the number of episodes ($total_eps)!"
+        if [[ "$_ANIME_WORKERS" -gt "$total_active" ]]; then
+            print_info "Capping concurrent workers to $total_active (number of active episodes)."
+            _ANIME_WORKERS="$total_active"
         fi
 
         if [[ "$_ANIME_WORKERS" -eq 1 ]]; then
@@ -306,9 +307,6 @@ download_episodes() {
             done
         else
             local W="$_ANIME_WORKERS"
-            if [[ "$W" -gt "$total_active" ]]; then
-                W="$total_active"
-            fi
             
             local tmp_dir="$_SCRIPT_PATH/.tmp_progress"
             mkdir -p "$tmp_dir"
