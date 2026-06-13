@@ -3,7 +3,7 @@
 # Download anime from animepahe in terminal
 #
 #/ Usage:
-#/   ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-r <resolution>] [-l] [-d]
+#/   ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_num1,num2,num3-num4...>] [-r <resolution>] [-w <workers>] [-l] [-d]
 #/
 #/ Options:
 #/   -a <name>               anime name
@@ -16,6 +16,7 @@
 #/   -r <resolution>         optional, specify resolution: "1080", "720"...
 #/                           by default, the highest resolution is selected
 #/   -o <language>           optional, specify audio language: "eng", "jpn"...
+#/   -w <workers>            optional, number of concurrent download workers (default: 4)
 #/   -l                      optional, show m3u8 playlist link without downloading videos
 #/   -d                      enable debug mode
 #/   -h | --help             display this help message
@@ -54,7 +55,8 @@ set_var() {
 set_args() {
     expr "$*" : ".*--help" > /dev/null && usage
     _DEFAULT_ANIME_RESOLUTION="1080"
-    while getopts ":hlda:s:e:r:o:" opt; do
+    _ANIME_WORKERS=4
+    while getopts ":hlda:s:e:r:o:w:" opt; do
         case $opt in
             a)
                 _INPUT_ANIME_NAME="$OPTARG"
@@ -74,6 +76,9 @@ set_args() {
             o)
                 _ANIME_AUDIO="$OPTARG"
                 ;;
+            w)
+                _ANIME_WORKERS="$OPTARG"
+                ;;
             d)
                 _DEBUG_MODE=true
                 set -x
@@ -86,6 +91,11 @@ set_args() {
                 ;;
         esac
     done
+
+    # Validate worker count is a positive integer
+    if [[ ! "$_ANIME_WORKERS" =~ ^[0-9]+$ ]] || [[ "$_ANIME_WORKERS" -le 0 ]]; then
+        print_error "Number of workers must be a valid positive integer!"
+    fi
 }
 
 print_info() {
@@ -252,21 +262,119 @@ download_episodes() {
 
     [[ ${#uniqel[@]} == 0 ]] && print_error "Wrong episode number!"
 
-    for e in "${uniqel[@]}"; do
-        download_episode "$e"
-    done
+    local total_eps=${#uniqel[@]}
+    if [[ -z "${_LIST_LINK_ONLY:-}" ]]; then
+        if [[ -n "${_DEBUG_MODE:-}" ]]; then
+            _ANIME_WORKERS=1
+        fi
+        
+        if [[ "$_ANIME_WORKERS" -gt "$total_eps" ]]; then
+            print_error "Number of workers ($_ANIME_WORKERS) cannot be greater than the number of episodes ($total_eps)!"
+        fi
+
+        if [[ "$_ANIME_WORKERS" -eq 1 ]]; then
+            for e in "${uniqel[@]}"; do
+                download_episode "$e" ""
+            done
+        else
+            local W="$_ANIME_WORKERS"
+            local tmp_dir="$_SCRIPT_PATH/.tmp_progress"
+            mkdir -p "$tmp_dir"
+
+            # Print initial space for worker bars
+            for i in $(seq 1 "$W"); do
+                echo ""
+            done
+
+            update_display() {
+                local w=$1
+                printf "\033[%dA" "$w"
+                for i in $(seq 0 $((w-1))); do
+                    local file="$tmp_dir/worker_$i"
+                    local line=""
+                    if [[ -f "$file" ]]; then
+                        line=$(cat "$file" 2>/dev/null)
+                    fi
+                    if [[ -z "$line" ]]; then
+                        line="[INFO] Slot $i: Idle"
+                    fi
+                    printf "\033[K%s\n" "$line"
+                done
+            }
+
+            local -A worker_pids
+
+            for e in "${uniqel[@]}"; do
+                local slot=-1
+                while [[ $slot -eq -1 ]]; do
+                    update_display "$W"
+                    for i in $(seq 0 $((W-1))); do
+                        local pid=${worker_pids[$i]:-}
+                        if [[ -z "$pid" ]] || ! kill -0 "$pid" 2>/dev/null; then
+                            slot=$i
+                            break
+                        fi
+                    done
+                    if [[ $slot -eq -1 ]]; then
+                        sleep 0.1
+                    fi
+                done
+
+                echo "Initializing Episode $e..." > "$tmp_dir/worker_$slot"
+                download_episode "$e" "$slot" &
+                worker_pids[$slot]=$!
+            done
+
+            local active=true
+            while $active; do
+                update_display "$W"
+                active=false
+                for i in $(seq 0 $((W-1))); do
+                    local pid=${worker_pids[$i]:-}
+                    if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+                        active=true
+                        break
+                    fi
+                done
+                if $active; then
+                    sleep 0.1
+                fi
+            done
+
+            update_display "$W"
+            rm -rf "$tmp_dir"
+        fi
+    else
+        for e in "${uniqel[@]}"; do
+            download_episode "$e" ""
+        done
+    fi
 }
 
 download_episode() {
     # $1: episode number
-    local num="$1" l pl v erropt='' extpicky=''
+    # $2: optional worker slot index
+    local num="$1" slot="${2:-}" l pl v erropt='' extpicky=''
     v="$_SCRIPT_PATH/${_ANIME_NAME}/${num}.mp4"
 
     l=$(get_episode_link "$num")
-    [[ "$l" != *"/"* ]] && print_warn "Wrong download link or episode $1 not found!" && return
+    if [[ "$l" != *"/"* ]]; then
+        print_warn "Wrong download link or episode $1 not found!"
+        if [[ -n "$slot" ]]; then
+            echo "[ERROR] Episode $num: Link not found!" > "$_SCRIPT_PATH/.tmp_progress/worker_$slot"
+        fi
+        return
+    fi
 
     pl=$(get_playlist_link "$l")
-    [[ -z "${pl:-}" ]] && print_warn "Missing video list! Skip downloading!" && return
+    if [[ -z "${pl:-}" ]]; then
+        print_warn "Missing video list! Skip downloading!"
+        if [[ -n "$slot" ]]; then
+            echo "[ERROR] Episode $num: Missing video list!" > "$_SCRIPT_PATH/.tmp_progress/worker_$slot"
+        fi
+        return
+    fi
+
     if [[ -z ${_LIST_LINK_ONLY:-} ]]; then
         if [[ -n "${_DEBUG_MODE:-}" ]]; then
             print_info "Downloading Episode $1..."
@@ -288,7 +396,12 @@ download_episode() {
                 extpicky="-extension_picky 0"
             fi
 
-            "$_FFMPEG" $extpicky -headers "Referer: $_REFERER_URL" -progress - -i "$pl" -c copy -y "$v" 2>/dev/null | awk -v total="$total_duration" '
+            local outfile=""
+            if [[ -n "$slot" ]]; then
+                outfile="$_SCRIPT_PATH/.tmp_progress/worker_$slot"
+            fi
+
+            "$_FFMPEG" $extpicky -headers "Referer: $_REFERER_URL" -progress - -i "$pl" -c copy -y "$v" 2>/dev/null | awk -v total="$total_duration" -v outfile="$outfile" -v ep="$num" '
                 /out_time_us=/ {
                     split($0, a, "=")
                     us = a[2]
@@ -307,12 +420,22 @@ download_episode() {
                     
                     speed_str = (speed != "") ? " [Speed: " speed "]" : ""
                     
-                    if (total > 0) {
-                        printf "\r\033[32m[INFO]\033[0m Downloading: [%s] %d%% (%ds/%ds)%s", bar, pct, secs, total, speed_str
+                    if (outfile != "") {
+                        if (total > 0) {
+                            msg = sprintf("Downloading Episode %d: [%s] %d%% (%ds/%ds)%s", ep, bar, pct, secs, total, speed_str)
+                        } else {
+                            msg = sprintf("Downloading Episode %d: %ds completed%s", ep, secs, speed_str)
+                        }
+                        print msg > outfile
+                        close(outfile)
                     } else {
-                        printf "\r\033[32m[INFO]\033[0m Downloading: %ds completed%s", secs, speed_str
+                        if (total > 0) {
+                            printf "\r\033[32m[INFO]\033[0m Downloading: [%s] %d%% (%ds/%ds)%s", bar, pct, secs, total, speed_str
+                        } else {
+                            printf "\r\033[32m[INFO]\033[0m Downloading: %ds completed%s", secs, speed_str
+                        }
+                        fflush()
                     }
-                    fflush()
                 }
                 /speed=/ {
                     split($0, a, "=")
@@ -320,7 +443,13 @@ download_episode() {
                     gsub(/^[ \t]+|[ \t]+$/, "", speed)
                 }
                 /progress=end/ {
-                    printf "\n"
+                    if (outfile != "") {
+                        msg = sprintf("[INFO] Episode %d Completed!", ep)
+                        print msg > outfile
+                        close(outfile)
+                    } else {
+                        printf "\n"
+                    }
                 }
             '
         fi
