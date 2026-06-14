@@ -184,11 +184,28 @@ get_episode_link() {
         fi
     fi
 
+    local selected_line
     if [[ -z "${r:-}" ]]; then
-        grep kwik <<< "$l" | grep kwik | grep "$_DEFAULT_ANIME_RESOLUTION" | awk -F '"' '{print $1}'
+        selected_line=$(grep kwik <<< "$l" | grep kwik | grep "$_DEFAULT_ANIME_RESOLUTION" | head -n 1)
     else
-        awk -F '" ' '{print $1}' <<< "$r"
+        selected_line=$(head -n 1 <<< "$r")
     fi
+
+    local kwik_link
+    if [[ -z "${r:-}" ]]; then
+        kwik_link=$(awk -F '"' '{print $1}' <<< "$selected_line")
+    else
+        kwik_link=$(awk -F '" ' '{print $1}' <<< "$selected_line")
+    fi
+
+    local audio_lang
+    audio_lang=$(grep -o -E 'data-audio="[a-zA-Z]+"' <<< "$selected_line" | cut -d'"' -f2)
+    local audio_type="sub"
+    if [[ "$audio_lang" == "eng" ]]; then
+        audio_type="dub"
+    fi
+
+    echo "$kwik_link $audio_type"
 }
 
 get_playlist_link() {
@@ -259,14 +276,21 @@ download_episodes() {
 
 download_episode() {
     # $1: episode number
-    local num="$1" l pl v erropt='' extpicky=''
-    v="$_SCRIPT_PATH/${_ANIME_NAME}/${num}.mp4"
+    local num="$1" res link audio_type pl v erropt='' extpicky=''
 
-    l=$(get_episode_link "$num")
-    [[ "$l" != *"/"* ]] && print_warn "Wrong download link or episode $1 not found!" && return
+    res=$(get_episode_link "$num")
+    read -r link audio_type <<< "$res"
 
-    pl=$(get_playlist_link "$l")
+    if [[ "$link" != *"/"* ]]; then
+        print_warn "Wrong download link or episode $1 not found!"
+        return
+    fi
+
+    pl=$(get_playlist_link "$link")
     [[ -z "${pl:-}" ]] && print_warn "Missing video list! Skip downloading!" && return
+    
+    # Format the filename: animeName_dubOrSub_episodeNumber.mp4
+    v="$_SCRIPT_PATH/${_ANIME_NAME}/${_ANIME_NAME}_${audio_type}_${num}.mp4"
     if [[ -z ${_LIST_LINK_ONLY:-} ]]; then
         print_info "Downloading Episode $1..."
 
