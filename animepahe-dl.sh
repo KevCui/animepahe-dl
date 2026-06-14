@@ -290,7 +290,11 @@ download_episode() {
     [[ -z "${pl:-}" ]] && print_warn "Missing video list! Skip downloading!" && return
     
     # Format the filename: animeName_dubOrSub_episodeNumber.mp4
-    v="$_SCRIPT_PATH/${_ANIME_NAME}/${_ANIME_NAME}_${audio_type}_${num}.mp4"
+    local padded_num="$num"
+    if [[ "$num" =~ ^[0-9]+$ ]]; then
+        padded_num=$(printf "%02d" "$num")
+    fi
+    v="$_SCRIPT_PATH/${_ANIME_NAME}/${_ANIME_NAME}_${audio_type}_${padded_num}.mp4"
     if [[ -z ${_LIST_LINK_ONLY:-} ]]; then
         print_info "Downloading Episode $1..."
 
