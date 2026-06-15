@@ -21,7 +21,7 @@
 - Configuration
 
 1. Open browser, visit https://animepahe.pw, solve Cloudflare
-2. Get `cf_clearance` cookie value, and `usre-agent` value from your browser
+2. Get `cf_clearance` cookie value, and `user-agent` value from your browser
 3. Edit `config.json`, put your `cf_clearance` and `user-agent`, like following:
 
 ```json
