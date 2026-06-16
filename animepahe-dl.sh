@@ -31,11 +31,6 @@ set_var() {
     _CURL="$(command -v curl)" || command_not_found "curl"
     _JQ="$(command -v jq)" || command_not_found "jq"
     _FZF="$(command -v fzf)" || command_not_found "fzf"
-    if [[ -z ${ANIMEPAHE_DL_NODE:-} ]]; then
-        _NODE="$(command -v node)" || command_not_found "node"
-    else
-        _NODE="$ANIMEPAHE_DL_NODE"
-    fi
     _FFMPEG="$(command -v ffmpeg)" || command_not_found "ffmpeg"
 
     _HOST="https://animepahe.pw"
@@ -191,21 +186,28 @@ get_episode_link() {
     fi
 }
 
+run_js_code() {
+    # $1: js code
+    curl -sS -X POST 'https://glot.io/run/javascript?version=latest' \
+        -H 'Content-Type: application/json' \
+        --data-raw $'{"files":[{"name":"main.js","content":"'"$1"'"}],"stdin":"","command":"node main.js"}'
+}
+
 get_playlist_link() {
     # $1: episode link
     local s l t
     while read -r t; do
         s="$("$_CURL" --compressed -sS -H "Referer: $_REFERER_HOST" "$t" \
-            | grep "<script>eval(" \
-            | awk -F 'script>' '{print $2}'\
-            | sed -E 's/document/process/g' \
-            | sed -E 's/querySelector/exit/g' \
-            | sed -E 's/eval\(/console.log\(/g')"
+            | grep "<script>eval" \
+            | awk -F 'script>' '{print $2}' \
+            | sed 's/\\/\\\\/g' \
+            | sed 's/"/\\"/g')"
 
-        l="$("$_NODE" -e "$s" \
+        l="$(run_js_code "$s" \
+            | "$_JQ" -r .stderr \
             | grep 'source=' \
-            | sed -E "s/.m3u8';.*/.m3u8/" \
-            | sed -E "s/.*const source='//")"
+            | sed 's/.m3u8.*/.m3u8/' \
+            | sed 's/.*https/https/')"
 
         if [[ -n "${l:-}" ]]; then
             echo "$l"

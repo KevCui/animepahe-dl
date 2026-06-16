@@ -13,7 +13,6 @@
 
 - [jq](https://stedolan.github.io/jq/)
 - [fzf](https://github.com/junegunn/fzf)
-- [Node.js](https://nodejs.org/en/download/)
 - [ffmpeg](https://ffmpeg.org/download.html)
 
 ## How to use
