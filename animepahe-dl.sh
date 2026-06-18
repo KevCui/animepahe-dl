@@ -292,16 +292,16 @@ select_episodes_to_download() {
 }
 
 remove_brackets() {
-    awk -F']' '{print $1}' | sed -E 's/^\[//'
+    sed -nE 's/^\[([^]]+)\].*/\1/p'
 }
 
 remove_slug() {
-    awk -F'] ' '{print $2}'
+    sed -nE 's/^\[[^]]+\][[:space:]]*(.*)/\1/p'
 }
 
 get_slug_from_name() {
     # $1: anime name
-    grep "] $1" "$_ANIME_LIST_FILE" | tail -1 | remove_brackets
+    grep -F "] $1" "$_ANIME_LIST_FILE" | tail -1 | remove_brackets
 }
 
 check_config() {
@@ -330,7 +330,7 @@ main() {
     fi
 
     [[ "$_ANIME_SLUG" == "" ]] && print_error "Anime slug not found!"
-    _ANIME_NAME="$(grep "$_ANIME_SLUG" "$_ANIME_LIST_FILE" \
+    _ANIME_NAME="$(grep -F "$_ANIME_SLUG" "$_ANIME_LIST_FILE" \
         | tail -1 \
         | remove_slug \
         | sed -E 's/[[:space:]]+$//' \
