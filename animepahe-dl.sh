@@ -120,7 +120,8 @@ search_anime_by_name() {
     # $1: anime name
     local d n
     d="$(get "$_HOST/api?m=search&q=${1// /%20}")"
-    n="$("$_JQ" -r '.total' <<< "$d")"
+    n="$("$_JQ" -r '.total' <<< "$d" 2>/dev/null)"
+    [[ -z "${n:-}" ]] && print_error "No search result... Need a new cf value in config.json"
     if [[ "$n" -eq "0" ]]; then
         echo ""
     else
@@ -140,7 +141,8 @@ download_source() {
     local d p n
     mkdir -p "$_SCRIPT_PATH/$_ANIME_NAME"
     d="$(get_episode_list "$_ANIME_SLUG" "1")"
-    p="$("$_JQ" -r '.last_page' <<< "$d")"
+    p="$("$_JQ" -r '.last_page' <<< "$d" 2>/dev/null)"
+    [[ -z "${p:-}" ]] && print_error "No search result... Need a new cf value in config.json"
 
     if [[ "$p" -gt "1" ]]; then
         for i in $(seq 2 "$p"); do
