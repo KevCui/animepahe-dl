@@ -296,12 +296,12 @@ remove_brackets() {
 }
 
 remove_slug() {
-    awk -F'] ' '{print $2}'
+    awk '{$1="";print}' | awk '{$1=$1;print}'
 }
 
 get_slug_from_name() {
     # $1: anime name
-    grep "] $1" "$_ANIME_LIST_FILE" | tail -1 | remove_brackets
+    grep -F "] $1" "$_ANIME_LIST_FILE" | tail -1 | remove_brackets
 }
 
 check_config() {
