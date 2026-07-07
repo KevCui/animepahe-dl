@@ -31,7 +31,7 @@ set_var() {
     _CURL="$(command -v curl)" || command_not_found "curl"
     _JQ="$(command -v jq)" || command_not_found "jq"
     _FZF="$(command -v fzf)" || command_not_found "fzf"
-    _FFMPEG="$(command -v ffmpeg)" || command_not_found "ffmpeg"
+    _YTDLP="$(command -v yt-dlp)" || command_not_found "yt-dlp"
 
     _HOST="https://animepahe.pw"
     _ANIME_URL="$_HOST/anime"
@@ -275,11 +275,7 @@ download_episode() {
         print_info "Downloading Episode $1..."
 
         [[ -z "${_DEBUG_MODE:-}" ]] && erropt="-v error"
-        if ffmpeg -h full 2>/dev/null| grep extension_picky >/dev/null; then
-            extpicky="-extension_picky 0"
-        fi
-
-        "$_FFMPEG" $extpicky -headers "Referer: $_REFERER_URL" -i "$pl" -c copy $erropt -y "$v"
+        "$_YTDLP" "$pl" --referer "$_REFERER_URL" --impersonate chrome --no-warnings -q --progress -o "$v"
     else
         echo "$pl"
     fi

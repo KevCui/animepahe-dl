@@ -13,7 +13,7 @@
 
 - [jq](https://stedolan.github.io/jq/)
 - [fzf](https://github.com/junegunn/fzf)
-- [ffmpeg](https://ffmpeg.org/download.html)
+- [yt-dlp with curl_cffi](https://github.com/yt-dlp/yt-dlp#impersonation): `pip install "yt-dlp[default,curl-cffi]"`
 
 ## How to use
 
