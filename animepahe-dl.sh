@@ -70,7 +70,6 @@ set_args() {
                 _ANIME_AUDIO="$OPTARG"
                 ;;
             d)
-                _DEBUG_MODE=true
                 set -x
                 ;;
             h)
@@ -263,7 +262,7 @@ download_episodes() {
 
 download_episode() {
     # $1: episode number
-    local num="$1" l pl v erropt='' extpicky=''
+    local num="$1" l pl v
     v="$_SCRIPT_PATH/${_ANIME_NAME}/${num}.mp4"
 
     l=$(get_episode_link "$num")
@@ -273,8 +272,6 @@ download_episode() {
     [[ -z "${pl:-}" ]] && print_warn "Missing video list! Skip downloading!" && return
     if [[ -z ${_LIST_LINK_ONLY:-} ]]; then
         print_info "Downloading Episode $1..."
-
-        [[ -z "${_DEBUG_MODE:-}" ]] && erropt="-v error"
         "$_YTDLP" "$pl" --referer "$_REFERER_URL" --impersonate chrome --no-warnings -q --progress -o "$v"
     else
         echo "$pl"
