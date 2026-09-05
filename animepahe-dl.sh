@@ -32,6 +32,7 @@ set_var() {
     _JQ="$(command -v jq)" || command_not_found "jq"
     _FZF="$(command -v fzf)" || command_not_found "fzf"
     _YTDLP="$(command -v yt-dlp)" || command_not_found "yt-dlp"
+    _NODE="$(command -v node)" || command_not_found "node"
 
     _HOST="https://animepahe.pw"
     _ANIME_URL="$_HOST/anime"
@@ -108,6 +109,16 @@ get() {
     "$_CURL" -sS -L "$1" -b "cf_clearance=$_CF_CLEARANCE" -A "$_USER_AGENT" --compressed
 }
 
+get_json() {
+    # $1: url
+    local response
+    response="$(get "$1")"
+    if ! "$_JQ" -e . >/dev/null 2>&1 <<< "$response"; then
+        print_error "AnimePahe returned a non-JSON response. Update cf_clearance and user-agent in config.json."
+    fi
+    printf '%s\n' "$response"
+}
+
 download_anime_list() {
     get "$_ANIME_URL" \
     | grep "/anime/" \
@@ -118,9 +129,8 @@ download_anime_list() {
 search_anime_by_name() {
     # $1: anime name
     local d n
-    d="$(get "$_HOST/api?m=search&q=${1// /%20}")"
-    n="$("$_JQ" -r '.total' <<< "$d" 2>/dev/null)"
-    [[ -z "${n:-}" ]] && print_error "No search result... Need a new cf value in config.json"
+    d="$(get_json "$_HOST/api?m=search&q=${1// /%20}")"
+    n="$("$_JQ" -r '.total' <<< "$d")"
     if [[ "$n" -eq "0" ]]; then
         echo ""
     else
@@ -133,15 +143,14 @@ search_anime_by_name() {
 get_episode_list() {
     # $1: anime id
     # $2: page number
-    get "${_API_URL}?m=release&id=${1}&sort=episode_asc&page=${2}"
+    get_json "${_API_URL}?m=release&id=${1}&sort=episode_asc&page=${2}"
 }
 
 download_source() {
     local d p n
     mkdir -p "$_SCRIPT_PATH/$_ANIME_NAME"
     d="$(get_episode_list "$_ANIME_SLUG" "1")"
-    p="$("$_JQ" -r '.last_page' <<< "$d" 2>/dev/null)"
-    [[ -z "${p:-}" ]] && print_error "No search result... Need a new cf value in config.json"
+    p="$("$_JQ" -r '.last_page' <<< "$d")"
 
     if [[ "$p" -gt "1" ]]; then
         for i in $(seq 2 "$p"); do
@@ -189,9 +198,9 @@ get_episode_link() {
 
 run_js_code() {
     # $1: js code
-    curl -sS -X POST 'https://glot.io/run/javascript?version=latest' \
-        -H 'Content-Type: application/json' \
-        --data-raw $'{"files":[{"name":"main.js","content":"'"$1"'"}],"stdin":"","command":"node main.js"}'
+    local browser_stubs
+    browser_stubs="global.document = { querySelector: () => ({}) }; global.window = { parent: { postMessage: () => {} }, screen: { orientation: { lock: () => {} } } }; global.Plyr = function() { this.on = () => {}; }; global.Hls = function() { this.loadSource = url => console.log('source=' + url); this.attachMedia = () => {}; }; global.Hls.isSupported = () => true;"
+    "$_NODE" -e "$browser_stubs$1"
 }
 
 get_playlist_link() {
@@ -200,12 +209,9 @@ get_playlist_link() {
     while read -r t; do
         s="$("$_CURL" --compressed -sS -H "Referer: $_REFERER_HOST" "$t" \
             | grep "<script>eval" \
-            | awk -F 'script>' '{print $2}' \
-            | sed 's/\\/\\\\/g' \
-            | sed 's/"/\\"/g')"
+            | awk -F 'script>' '{print $2}')"
 
         l="$(run_js_code "$s" \
-            | "$_JQ" -r .stderr \
             | grep 'source=' \
             | sed 's/.m3u8.*/.m3u8/' \
             | sed 's/.*https/https/')"
