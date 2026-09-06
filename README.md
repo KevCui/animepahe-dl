@@ -11,10 +11,10 @@
 
 ## Dependency
 
-- [curl-imporsonate](https://github.com/lwthiker/curl-impersonate)
 - [jq](https://stedolan.github.io/jq/)
 - [fzf](https://github.com/junegunn/fzf)
 - [yt-dlp with curl_cffi](https://github.com/yt-dlp/yt-dlp#impersonation): `pip install "yt-dlp[default,curl-cffi]"`
+- [curl-imporsonate](https://github.com/lexiforest/curl-impersonate)
 
 ## How to use
 
