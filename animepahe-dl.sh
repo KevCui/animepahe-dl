@@ -189,7 +189,6 @@ get_episode_link() {
 
 run_js_code() {
     # $1: js code
-    # print_error "$1"
     curl -sS -X POST 'https://glot.io/api/mux' \
         -H 'Content-Type: application/json' \
         --data-raw $'{"action":"run","data":{"image":"glot/javascript:latest","payload":{"runInstructions":{"buildCommands":[],"runCommand":"node main.js"},"files":[{"name":"main.js","content":"'"$1"'"}],"stdin":null}}}'
