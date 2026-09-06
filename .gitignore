@@ -8,3 +8,5 @@ package-lock.json
 .*
 config.json
 bin/*.json
+*.ytdl
+*.part

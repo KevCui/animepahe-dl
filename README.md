@@ -1,6 +1,6 @@
 # animepahe-dl
 
-> Download anime videos from [animepahe](https://animepahe.com/) in terminal
+> Download anime videos from [animepahe](https://animepahe.pw/) in terminal
 
 ## Table of Contents
 
@@ -11,6 +11,7 @@
 
 ## Dependency
 
+- [curl-imporsonate](https://github.com/lwthiker/curl-impersonate)
 - [jq](https://stedolan.github.io/jq/)
 - [fzf](https://github.com/junegunn/fzf)
 - [yt-dlp with curl_cffi](https://github.com/yt-dlp/yt-dlp#impersonation): `pip install "yt-dlp[default,curl-cffi]"`

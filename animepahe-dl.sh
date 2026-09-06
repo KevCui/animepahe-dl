@@ -28,7 +28,7 @@ usage() {
 }
 
 set_var() {
-    _CURL="$(command -v curl)" || command_not_found "curl"
+    _CURL="$(command -v curl-impersonate)" || command_not_found "curl-impersonate"
     _JQ="$(command -v jq)" || command_not_found "jq"
     _FZF="$(command -v fzf)" || command_not_found "fzf"
     _YTDLP="$(command -v yt-dlp)" || command_not_found "yt-dlp"
@@ -189,7 +189,7 @@ get_episode_link() {
 
 run_js_code() {
     # $1: js code
-    curl -sS -X POST 'https://glot.io/api/mux' \
+    "$_CURL" -sS -X POST 'https://glot.io/api/mux' \
         -H 'Content-Type: application/json' \
         --data-raw $'{"action":"run","data":{"image":"glot/javascript:latest","payload":{"runInstructions":{"buildCommands":[],"runCommand":"node main.js"},"files":[{"name":"main.js","content":"'"$1"'"}],"stdin":null}}}'
 }
