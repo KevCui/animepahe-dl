@@ -189,9 +189,10 @@ get_episode_link() {
 
 run_js_code() {
     # $1: js code
-    curl -sS -X POST 'https://glot.io/run/javascript?version=latest' \
+    # print_error "$1"
+    curl -sS -X POST 'https://glot.io/api/mux' \
         -H 'Content-Type: application/json' \
-        --data-raw $'{"files":[{"name":"main.js","content":"'"$1"'"}],"stdin":"","command":"node main.js"}'
+        --data-raw $'{"action":"run","data":{"image":"glot/javascript:latest","payload":{"runInstructions":{"buildCommands":[],"runCommand":"node main.js"},"files":[{"name":"main.js","content":"'"$1"'"}],"stdin":null}}}'
 }
 
 get_playlist_link() {
@@ -205,7 +206,6 @@ get_playlist_link() {
             | sed 's/"/\\"/g')"
 
         l="$(run_js_code "$s" \
-            | "$_JQ" -r .stderr \
             | grep 'source=' \
             | sed 's/.m3u8.*/.m3u8/' \
             | sed 's/.*https/https/')"
